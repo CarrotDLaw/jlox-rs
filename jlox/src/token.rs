@@ -18,13 +18,17 @@ impl Token {
     }
   }
 
-  pub fn add_eof(line: usize) -> Token {
+  pub fn new_eof(line: usize) -> Token {
     Token {
       token_type: TokenType::Eof,
       lexeme: "".to_string(),
       literal: None,
       line,
     }
+  }
+
+  pub fn get_lexeme(&self) -> String {
+    self.lexeme.to_string()
   }
 }
 
@@ -65,8 +69,8 @@ impl fmt::Display for Object {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TokenType {
-  LeftBracket,
-  RightBracket,
+  LeftParen,
+  RightParen,
   LeftBrace,
   RightBrace,
   Comma,

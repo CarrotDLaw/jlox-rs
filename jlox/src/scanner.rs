@@ -25,7 +25,7 @@ impl Scanner {
       self.scan_token()?;
     }
 
-    self.tokens.push(Token::add_eof(self.line));
+    self.tokens.push(Token::new_eof(self.line));
 
     Ok(&self.tokens)
   }
@@ -37,8 +37,8 @@ impl Scanner {
   fn scan_token(&mut self) -> Result<(), LoxError> {
     let c = self.advance();
     match c {
-      '(' => self.add_token(TokenType::LeftBracket),
-      ')' => self.add_token(TokenType::RightBracket),
+      '(' => self.add_token(TokenType::LeftParen),
+      ')' => self.add_token(TokenType::RightParen),
       '{' => self.add_token(TokenType::LeftBrace),
       '}' => self.add_token(TokenType::RightBrace),
       ',' => self.add_token(TokenType::Comma),

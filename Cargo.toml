@@ -1,2 +1,3 @@
 [workspace]
 members = ["jlox", "tools"]
+resolver = "2"

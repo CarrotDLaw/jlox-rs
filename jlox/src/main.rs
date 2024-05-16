@@ -5,7 +5,7 @@ use std::{
   process::exit,
 };
 
-use jlox::{error::*, scanner::*, token::*};
+use jlox::{ast_printer::*, error::*, scanner::*, token::*};
 
 fn main() {
   let args = args().collect::<Vec<String>>();
@@ -14,8 +14,8 @@ fn main() {
   match args.len() {
     1 => lox.run_prompt(),
     2 => lox
-      .run_file(args.get(1).expect("Error reading input"))
-      .expect("Error opening file"),
+      .run_file(args.get(1).expect("Error reading input."))
+      .expect("Error opening file."),
     _ => {
       eprintln!("Usage: jlox [script]");
       exit(64);
@@ -62,6 +62,8 @@ impl Lox {
     for token in tokens {
       println!("{token}",);
     }
+
+    
 
     Ok(())
   }
