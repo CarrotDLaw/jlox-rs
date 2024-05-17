@@ -3,9 +3,10 @@ use std::{
   fs::read_to_string,
   io::{self, stdin, stdout, Write},
   process::exit,
+  rc::Rc,
 };
 
-use jlox::{ast_printer::*, error::*, parser::*, scanner::*, token::*};
+use jlox::{error::*, interpreter::*, parser::*, scanner::*};
 
 fn main() {
   let args = args().collect::<Vec<String>>();
@@ -60,6 +61,9 @@ impl Lox {
     let tokens = scanner.scan_tokens()?;
     let mut parser = Parser::new(tokens);
     let expression = parser.parse()?;
+    let mut interpreter = Interpreter::new();
+    let value = interpreter.interpret(&Rc::new(expression))?;
+
 
     Ok(())
   }

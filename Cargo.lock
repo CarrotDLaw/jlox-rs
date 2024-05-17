@@ -3,9 +3,9 @@
 version = 3
 
 [[package]]
-name = "jlox"
+name = "generate-ast"
 version = "0.1.0"
 
 [[package]]
-name = "tools"
+name = "jlox"
 version = "0.1.0"

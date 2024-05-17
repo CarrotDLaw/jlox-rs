@@ -99,7 +99,7 @@ impl Scanner {
       '"' => self.string()?,
       '0'..='9' => self.number()?,
       _ if c.is_ascii_alphabetic() || c == '_' => self.identifier(),
-      _ => return Err(LoxError::error(self.line, "Unexpected character.")),
+      _ => return Err(LoxError::general_error(self.line, "Unexpected character.")),
     }
 
     Ok(())
@@ -138,7 +138,7 @@ impl Scanner {
           .iter()
           .collect::<String>()
           .parse::<f64>()
-          .map_err(|_| LoxError::error(self.line, "Could not parse number."))?,
+          .map_err(|_| LoxError::general_error(self.line, "Could not parse number."))?,
       )),
     );
 
@@ -156,7 +156,7 @@ impl Scanner {
     }
 
     if self.is_at_end() {
-      return Err(LoxError::error(self.current, "Unterminated string."));
+      return Err(LoxError::general_error(self.current, "Unterminated string."));
     }
 
     self.advance();
@@ -199,7 +199,7 @@ impl Scanner {
           self.line += 1;
         }
         None => {
-          return Err(LoxError::error(self.line, "Unterminated block comment."));
+          return Err(LoxError::general_error(self.line, "Unterminated block comment."));
         }
         _ => {
           self.advance();
@@ -305,13 +305,15 @@ mod test {
   use super::*;
 
   #[test]
-  fn test_scanner() {
+  fn test_scanner() -> Result<(), LoxError> {
     let source = "-123 * (45.67)";
     let mut scanner = Scanner::new(source);
-    let tokens = scanner.scan_tokens().unwrap();
+    let tokens = scanner.scan_tokens()?;
 
     for token in tokens {
       println!("{token}");
     }
+
+    Ok(())
   }
 }

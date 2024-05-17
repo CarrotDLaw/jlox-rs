@@ -224,8 +224,8 @@ mod test {
     let expression = parser.parse()?;
 
     let expr_string = AstPrinter.print(&expression);
-    assert_eq!(expr_string, "(* (- 123) (group 45.67))");
     println!("{}", expr_string);
+    assert_eq!(expr_string, "(* (- 123) (group 45.67))");
 
     Ok(())
   }

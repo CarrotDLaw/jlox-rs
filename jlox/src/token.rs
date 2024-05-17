@@ -1,6 +1,8 @@
-use std::{borrow::Borrow, fmt};
+use std::fmt;
 
-#[derive(Clone)]
+use crate::error::*;
+
+#[derive(Debug, Clone)]
 pub struct Token {
   token_type: TokenType,
   lexeme: String,
@@ -74,7 +76,7 @@ impl fmt::Display for Token {
   }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum Object {
   Number(f64),
   String(String),
@@ -82,11 +84,21 @@ pub enum Object {
   Nil,
 }
 
+impl Object {
+  pub fn get_number(&self) -> Result<f64, LoxError> {
+    if let &Object::Number(n) = self {
+      return Ok(n);
+    }
+
+    Err(LoxError::TypeError)
+  }
+}
+
 impl fmt::Display for Object {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match self {
       Object::Number(n) => write!(f, "{n}"),
-      Object::String(s) => write!(f, "\"{s}\""),
+      Object::String(s) => write!(f, "{s}"),
       Object::Boolean(b) => write!(f, "{b}"),
       Object::Nil => write!(f, "nil"),
     }
