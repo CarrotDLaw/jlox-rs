@@ -1,13 +1,14 @@
 use std::rc::Rc;
 
-use crate::error::*;
-use crate::expr::*;
+use crate::{error::*, expr::*};
 
 pub struct AstPrinter;
 
 impl AstPrinter {
-  pub fn print(&self, expr: &Expr) -> Result<String, LoxError> {
-    expr.accept(self)
+  pub fn print(&self, expr: &Expr) -> String {
+    expr
+      .accept(self)
+      .unwrap_or("AST PRINTER INTERNAL ERROR.".to_string())
   }
 
   fn parenthesise(&self, name: &str, exprs: &[&Rc<Expr>]) -> Result<String, LoxError> {
@@ -24,7 +25,7 @@ impl AstPrinter {
 
 impl ExprVisitor<String> for AstPrinter {
   fn visit_binary_expr(&self, expr: &BinaryExpr) -> Result<String, LoxError> {
-    self.parenthesise(&expr.operator.get_lexeme(), &[&expr.left, &expr.right])
+    self.parenthesise(expr.operator.get_lexeme(), &[&expr.left, &expr.right])
   }
 
   fn visit_grouping_expr(&self, expr: &GroupingExpr) -> Result<String, LoxError> {
@@ -40,7 +41,7 @@ impl ExprVisitor<String> for AstPrinter {
   }
 
   fn visit_unary_expr(&self, expr: &UnaryExpr) -> Result<String, LoxError> {
-    self.parenthesise(&expr.operator.get_lexeme(), &[&expr.right])
+    self.parenthesise(expr.operator.get_lexeme(), &[&expr.right])
   }
 }
 
@@ -67,11 +68,8 @@ mod test {
       }))),
     }));
 
-    println!(
-      "{}",
-      AstPrinter
-        .print(&expr)
-        .unwrap_or("AST PRINTER ERROR".to_string())
-    );
+    let expr_string = AstPrinter.print(&expr);
+    assert_eq!(expr_string, "(* (- 123) (group 45.67))");
+    println!("{}", expr_string);
   }
 }

@@ -5,7 +5,6 @@ use std::{
   process::exit,
 };
 
-// #[derive(Debug)]
 struct TreeType {
   class_name: String,
   fields: Vec<String>,

@@ -1,6 +1,6 @@
-use std::fmt;
+use std::{borrow::Borrow, fmt};
 
-// #[derive(Debug)]
+#[derive(Clone)]
 pub struct Token {
   token_type: TokenType,
   lexeme: String,
@@ -27,8 +27,34 @@ impl Token {
     }
   }
 
-  pub fn get_lexeme(&self) -> String {
-    self.lexeme.to_string()
+  pub fn get_type(&self) -> &TokenType {
+    &self.token_type
+  }
+
+  pub fn get_lexeme(&self) -> &String {
+    &self.lexeme
+  }
+
+  pub fn get_literal(&self) -> &Option<Object> {
+    &self.literal
+  }
+
+  pub fn get_line(&self) -> usize {
+    self.line
+  }
+
+  pub fn is_type(&self, token_type: &TokenType) -> bool {
+    &self.token_type == token_type
+  }
+
+  pub fn is_types(&self, token_types: &[&TokenType]) -> bool {
+    for token_type in token_types {
+      if &&self.token_type == token_type {
+        return true;
+      }
+    }
+
+    false
   }
 }
 
@@ -48,7 +74,7 @@ impl fmt::Display for Token {
   }
 }
 
-// #[derive(Debug)]
+#[derive(Clone)]
 pub enum Object {
   Number(f64),
   String(String),
@@ -67,7 +93,7 @@ impl fmt::Display for Object {
   }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TokenType {
   LeftParen,
   RightParen,
@@ -108,4 +134,16 @@ pub enum TokenType {
   True,
   Var,
   While,
+}
+
+#[cfg(test)]
+mod test {
+  use super::*;
+
+  #[test]
+  fn test_token_is_type() {
+    let token = Token::new(TokenType::Number, "123", Some(Object::Number(123.0)), 1);
+    assert!(token.is_type(&TokenType::Number));
+    assert!(!token.is_type(&TokenType::Nil));
+  }
 }

@@ -5,7 +5,7 @@ use std::{
   process::exit,
 };
 
-use jlox::{ast_printer::*, error::*, scanner::*, token::*};
+use jlox::{ast_printer::*, error::*, parser::*, scanner::*, token::*};
 
 fn main() {
   let args = args().collect::<Vec<String>>();
@@ -58,12 +58,8 @@ impl Lox {
   fn run(&self, source: &str) -> Result<(), LoxError> {
     let mut scanner = Scanner::new(source);
     let tokens = scanner.scan_tokens()?;
-
-    for token in tokens {
-      println!("{token}",);
-    }
-
-    
+    let mut parser = Parser::new(tokens);
+    let expression = parser.parse()?;
 
     Ok(())
   }

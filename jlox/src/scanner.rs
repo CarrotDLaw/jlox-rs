@@ -97,7 +97,7 @@ impl Scanner {
       ' ' | '\r' | '\t' => (),
       '\n' => self.line += 1,
       '"' => self.string()?,
-      '0'..='9' => self.number(),
+      '0'..='9' => self.number()?,
       _ if c.is_ascii_alphabetic() || c == '_' => self.identifier(),
       _ => return Err(LoxError::error(self.line, "Unexpected character.")),
     }
@@ -118,7 +118,7 @@ impl Scanner {
     );
   }
 
-  fn number(&mut self) {
+  fn number(&mut self) -> Result<(), LoxError> {
     while self.peek().is_ascii_digit() {
       self.advance();
     }
@@ -138,9 +138,11 @@ impl Scanner {
           .iter()
           .collect::<String>()
           .parse::<f64>()
-          .unwrap(),
+          .map_err(|_| LoxError::error(self.line, "Could not parse number."))?,
       )),
     );
+
+    Ok(())
   }
 
   fn string(&mut self) -> Result<(), LoxError> {
@@ -230,7 +232,7 @@ impl Scanner {
       return c;
     }
 
-    0 as char
+    unreachable!()
   }
 
   fn add_token(&mut self, token_type: TokenType) {
@@ -294,6 +296,22 @@ impl MatchIdentifier for str {
       "var" => TokenType::Var,
       "while" => TokenType::While,
       _ => TokenType::Identifier,
+    }
+  }
+}
+
+#[cfg(test)]
+mod test {
+  use super::*;
+
+  #[test]
+  fn test_scanner() {
+    let source = "-123 * (45.67)";
+    let mut scanner = Scanner::new(source);
+    let tokens = scanner.scan_tokens().unwrap();
+
+    for token in tokens {
+      println!("{token}");
     }
   }
 }
