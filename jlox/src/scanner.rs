@@ -156,7 +156,10 @@ impl Scanner {
     }
 
     if self.is_at_end() {
-      return Err(LoxError::general_error(self.current, "Unterminated string."));
+      return Err(LoxError::general_error(
+        self.current,
+        "Unterminated string.",
+      ));
     }
 
     self.advance();
@@ -199,7 +202,10 @@ impl Scanner {
           self.line += 1;
         }
         None => {
-          return Err(LoxError::general_error(self.line, "Unterminated block comment."));
+          return Err(LoxError::general_error(
+            self.line,
+            "Unterminated block comment.",
+          ));
         }
         _ => {
           self.advance();

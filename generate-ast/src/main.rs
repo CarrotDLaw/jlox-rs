@@ -23,10 +23,23 @@ fn main() -> io::Result<()> {
     "Expr",
     &["error", "token"],
     &[
+      "Assign   : Token name, Rc<Expr> value",
       "Binary   : Rc<Expr> left, Token operator, Rc<Expr> right",
       "Grouping : Rc<Expr> expression",
       "Literal  : Option<Object> value",
       "Unary    : Token operator, Rc<Expr> right",
+      "Variable : Token name",
+    ],
+  )?;
+
+  define_ast(
+    output_dir,
+    "Stmt",
+    &["error", "expr", "token"],
+    &[
+      "Expression : Rc<Expr> expression",
+      "Print      : Rc<Expr> expression",
+      "Var        : Token name, Option<Rc<Expr>> initialiser",
     ],
   )?;
 
@@ -103,11 +116,11 @@ fn define_ast(
   }
 
   writeln!(file)?;
-  writeln!(file, "pub trait {}Visitor<T> {{", base_name)?;
+  writeln!(file, "pub trait {base_name}Visitor<T> {{")?;
   for tree_type in &tree_types {
     writeln!(
       file,
-      "  fn visit_{}_{}(&self, expr: &{}{}) -> Result<T, LoxError>;",
+      "  fn visit_{0}_{1}(&self, {1}: &{2}{3}) -> Result<T, LoxError>;",
       tree_type.class_name.to_lowercase(),
       base_name.to_lowercase(),
       tree_type.class_name,

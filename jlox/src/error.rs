@@ -4,6 +4,7 @@ use crate::token::*;
 pub enum LoxError {
   GeneralError { line: usize, message: String },
   ParseError { token: Token, message: String },
+  ParseFail,
   RuntimeError { token: Token, message: String },
   TypeError,
 }
@@ -56,7 +57,7 @@ impl LoxError {
       LoxError::RuntimeError { token, message } => {
         eprintln!("{}\n[line {}]", message, token.get_line())
       }
-      LoxError::TypeError => (),
+      _ => (),
     }
   }
 }

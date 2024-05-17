@@ -1,23 +1,115 @@
 use std::rc::Rc;
 
-use crate::{error::*, expr::*, token::*};
+use crate::{error::*, expr::*, stmt::*, token::*};
 
 pub struct Parser<'a> {
   tokens: &'a [Token],
   current: usize,
+  had_error: bool,
 }
 
 impl<'a> Parser<'a> {
   pub fn new(tokens: &[Token]) -> Parser {
-    Parser { tokens, current: 0 }
+    Parser {
+      tokens,
+      current: 0,
+      had_error: false,
+    }
   }
 
-  pub fn parse(&mut self) -> Result<Expr, LoxError> {
-    self.expression()
+  pub fn success(&self) -> bool {
+    !self.had_error
+  }
+
+  pub fn parse(&mut self) -> Result<Vec<Stmt>, LoxError> {
+    let mut statements = Vec::new();
+
+    while !self.is_at_end() {
+      statements.push(self.declaration()?)
+    }
+
+    Ok(statements)
   }
 
   fn expression(&mut self) -> Result<Expr, LoxError> {
-    self.equality()
+    self.assignment()
+  }
+
+  fn declaration(&mut self) -> Result<Stmt, LoxError> {
+    let res = if self.is_match(&[&TokenType::Var]) {
+      self.var_declaration()
+    } else {
+      self.statement()
+    };
+
+    if res.is_err() {
+      self.synchronise();
+    }
+
+    res
+  }
+
+  fn statement(&mut self) -> Result<Stmt, LoxError> {
+    if self.is_match(&[&TokenType::Print]) {
+      return self.print_statement();
+    }
+
+    self.expression_statement()
+  }
+
+  fn print_statement(&mut self) -> Result<Stmt, LoxError> {
+    let value = self.expression()?;
+    self.consume(&TokenType::Semicolon, "Expect ';' after value.")?;
+    Ok(Stmt::Print(Rc::new(PrintStmt {
+      expression: Rc::new(value),
+    })))
+  }
+
+  fn var_declaration(&mut self) -> Result<Stmt, LoxError> {
+    let name = self
+      .consume(&TokenType::Identifier, "Expect variable name.")?
+      .clone();
+
+    let initialiser = if self.is_match(&[&TokenType::Assign]) {
+      Some(Rc::new(self.expression()?))
+    } else {
+      None
+    };
+
+    self.consume(
+      &TokenType::Semicolon,
+      "Expect ';' after variable declaration.",
+    )?;
+    Ok(Stmt::Var(Rc::new(VarStmt { name, initialiser })))
+  }
+
+  fn expression_statement(&mut self) -> Result<Stmt, LoxError> {
+    let value = self.expression()?;
+    self.consume(&TokenType::Semicolon, "Expect ';' after expression.")?;
+    Ok(Stmt::Expression(Rc::new(ExpressionStmt {
+      expression: Rc::new(value),
+    })))
+  }
+
+  fn assignment(&mut self) -> Result<Expr, LoxError> {
+    let expr = self.equality()?;
+
+    if self.is_match(&[&TokenType::Assign]) {
+      let equals = self.previous().clone();
+      let value = self.assignment()?;
+
+      if let Expr::Variable(v) = expr {
+        return Ok(Expr::Assign(Rc::new(AssignExpr {
+          name: v.name.clone(),
+          value: Rc::new(value),
+        })));
+      }
+
+      self.had_error = true;
+      LoxError::parse_error(&equals, "Invalid assignment target.");
+    }
+
+    Ok(expr)
   }
 
   fn equality(&mut self) -> Result<Expr, LoxError> {
@@ -117,6 +209,12 @@ impl<'a> Parser<'a> {
       })));
     }
 
+    if self.is_match(&[&TokenType::Identifier]) {
+      return Ok(Expr::Variable(Rc::new(VariableExpr {
+        name: self.previous().clone(),
+      })));
+    }
+
     if self.is_match(&[&TokenType::LeftParen]) {
       let expr = self.expression()?;
       self.consume(&TokenType::RightParen, "Expect ')' after expression.")?;
@@ -206,27 +304,5 @@ impl<'a> Parser<'a> {
 
       self.advance();
     }
-  }
-}
-
-#[cfg(test)]
-mod test {
-  use super::*;
-
-  use crate::{ast_printer::*, scanner::*};
-
-  #[test]
-  fn test_parser() -> Result<(), LoxError> {
-    let source = "-123 * (45.67)";
-    let mut scanner = Scanner::new(source);
-    let tokens = scanner.scan_tokens()?;
-    let mut parser = Parser::new(tokens);
-    let expression = parser.parse()?;
-
-    let expr_string = AstPrinter.print(&expression);
-    println!("{}", expr_string);
-    assert_eq!(expr_string, "(* (- 123) (group 45.67))");
-
-    Ok(())
   }
 }

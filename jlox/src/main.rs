@@ -6,7 +6,7 @@ use std::{
   rc::Rc,
 };
 
-use jlox::{error::*, interpreter::*, parser::*, scanner::*};
+use jlox::{error::*, interpreter::*, parser::*, scanner::*, stmt::*};
 
 fn main() {
   let args = args().collect::<Vec<String>>();
@@ -24,11 +24,15 @@ fn main() {
   }
 }
 
-struct Lox {}
+struct Lox {
+  interpreter: Interpreter,
+}
 
 impl Lox {
   fn new() -> Lox {
-    Lox {}
+    Lox {
+      interpreter: Interpreter::new(),
+    }
   }
 
   fn run_file(&self, path: &str) -> io::Result<()> {
@@ -60,10 +64,14 @@ impl Lox {
     let mut scanner = Scanner::new(source);
     let tokens = scanner.scan_tokens()?;
     let mut parser = Parser::new(tokens);
-    let expression = parser.parse()?;
-    let mut interpreter = Interpreter::new();
-    let value = interpreter.interpret(&Rc::new(expression))?;
+    let statements = parser.parse()?;
 
+    self.interpreter.interpret(
+      &statements
+        .into_iter()
+        .map(Rc::new)
+        .collect::<Vec<Rc<Stmt>>>(),
+    )?;
 
     Ok(())
   }

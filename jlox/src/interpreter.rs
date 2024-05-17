@@ -1,22 +1,33 @@
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
-use crate::{error::*, expr::*, token::*};
+use crate::{environment::*, error::*, expr::*, stmt::*, token::*};
 
-pub struct Interpreter {}
+#[derive(Default)]
+pub struct Interpreter {
+  environment: Rc<RefCell<Environment>>,
+}
 
 impl Interpreter {
   pub fn new() -> Interpreter {
-    Interpreter {}
+    Interpreter {
+      environment: Rc::new(RefCell::new(Environment::new())),
+    }
   }
 
-  pub fn interpret(&self, expr: &Rc<Expr>) -> Result<Object, LoxError> {
-    let value = self.evaluate(expr)?;
-    println!("{}", value);
-    Ok(value)
+  pub fn interpret(&self, statements: &[Rc<Stmt>]) -> Result<(), LoxError> {
+    for statement in statements {
+      self.execute(statement)?;
+    }
+
+    Ok(())
   }
 
   fn evaluate(&self, expr: &Rc<Expr>) -> Result<Object, LoxError> {
     expr.accept(self)
+  }
+
+  fn execute(&self, stmt: &Rc<Stmt>) -> Result<(), LoxError> {
+    stmt.accept(self)
   }
 
   fn is_truthy(&self, object: &Object) -> bool {
@@ -41,6 +52,12 @@ impl Interpreter {
 }
 
 impl ExprVisitor<Object> for Interpreter {
+  fn visit_assign_expr(&self, expr: &AssignExpr) -> Result<Object, LoxError> {
+    let value = self.evaluate(&expr.value)?;
+    self.environment.borrow_mut().assign(&expr.name, &value)?;
+    Ok(value)
+  }
+
   fn visit_binary_expr(&self, expr: &BinaryExpr) -> Result<Object, LoxError> {
     let left = self.evaluate(&expr.left)?;
     let right = self.evaluate(&expr.right)?;
@@ -140,6 +157,36 @@ impl ExprVisitor<Object> for Interpreter {
       _ => Err(Interpreter::internal_error(&expr.operator)),
     }
   }
+
+  fn visit_variable_expr(&self, expr: &VariableExpr) -> Result<Object, LoxError> {
+    self.environment.borrow().get(&expr.name)
+  }
+}
+
+impl StmtVisitor<()> for Interpreter {
+  fn visit_expression_stmt(&self, stmt: &ExpressionStmt) -> Result<(), LoxError> {
+    self.evaluate(&stmt.expression)?;
+    Ok(())
+  }
+
+  fn visit_print_stmt(&self, stmt: &PrintStmt) -> Result<(), LoxError> {
+    println!("{}", self.evaluate(&stmt.expression)?);
+    Ok(())
+  }
+
+  fn visit_var_stmt(&self, stmt: &VarStmt) -> Result<(), LoxError> {
+    let value = if let Some(i) = &stmt.initialiser {
+      self.evaluate(i)?
+    } else {
+      Object::Nil
+    };
+
+    self
+      .environment
+      .borrow_mut()
+      .define(stmt.name.get_lexeme(), value);
+    Ok(())
+  }
 }
 
 #[cfg(test)]
@@ -150,15 +197,38 @@ mod test {
 
   #[test]
   fn test_interpreter() -> Result<(), LoxError> {
-    let source = "-123 * (45.67)";
+    let interpreter = Interpreter::new();
+    let source = "print -123 * (45.67);";
     let mut scanner = Scanner::new(source);
     let tokens = scanner.scan_tokens()?;
     let mut parser = Parser::new(tokens);
-    let expression = parser.parse()?;
-    let mut interpreter = Interpreter::new();
-    let value = interpreter.interpret(&Rc::new(expression))?;
+    let statements = parser.parse()?;
 
-    assert!(matches!(value, Object::Number(n) if n == -5617.41));
+    interpreter.interpret(
+      &statements
+        .into_iter()
+        .map(Rc::new)
+        .collect::<Vec<Rc<Stmt>>>(),
+    )?;
+
+    Ok(())
+  }
+
+  #[test]
+  fn test_global_variable() -> Result<(), LoxError> {
+    let interpreter = Interpreter::new();
+    let source = "var a = 1;\nvar b = 2;\nprint a + b;".to_string();
+    let mut scanner = Scanner::new(&source);
+    let tokens = scanner.scan_tokens()?;
+    let mut parser = Parser::new(tokens);
+    let statements = parser.parse()?;
+
+    interpreter.interpret(
+      &statements
+        .into_iter()
+        .map(Rc::new)
+        .collect::<Vec<Rc<Stmt>>>(),
+    )?;
 
     Ok(())
   }
