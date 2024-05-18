@@ -22,6 +22,10 @@ impl Interpreter {
     Ok(())
   }
 
+  pub fn print_environment(&self) {
+    dbg!(&self.environment);
+  }
+
   fn evaluate(&self, expr: &Rc<Expr>) -> Result<Object, LoxError> {
     expr.accept(self)
   }

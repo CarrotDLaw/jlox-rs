@@ -76,7 +76,7 @@ impl fmt::Display for Token {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Object {
   Number(f64),
   String(String),

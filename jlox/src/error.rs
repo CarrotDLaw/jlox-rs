@@ -4,7 +4,7 @@ use crate::token::*;
 pub enum LoxError {
   GeneralError { line: usize, message: String },
   ParseError { token: Token, message: String },
-  ParseFail,
+  ParseFailure,
   RuntimeError { token: Token, message: String },
   TypeError,
 }
@@ -40,22 +40,23 @@ impl LoxError {
   fn report(&self) {
     match self {
       LoxError::GeneralError { line, message } => {
-        eprintln!("[line {}] Error: {}", line, message)
+        eprintln!("[line {line}] Error: {message}")
       }
       LoxError::ParseError { token, message } => {
-        eprintln!(
-          "[line {}] Error at {}: {}",
-          token.get_line(),
-          if token.is_type(&TokenType::Eof) {
-            "end".to_string()
-          } else {
-            format!("'{}'", token.get_lexeme())
-          },
-          message
-        )
+        let line = token.get_line();
+        let location = if token.is_type(&TokenType::Eof) {
+          "end".to_string()
+        } else {
+          format!("'{}'", token.get_lexeme())
+        };
+
+        eprintln!("[line {line}] Error at {location}: {message}");
       }
       LoxError::RuntimeError { token, message } => {
-        eprintln!("{}\n[line {}]", message, token.get_line())
+        let line = token.get_line();
+
+        eprintln!("{message}");
+        eprintln!("[line {line}]");
       }
       _ => (),
     }
