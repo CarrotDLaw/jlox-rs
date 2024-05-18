@@ -54,6 +54,12 @@ impl<'a> Parser<'a> {
       return self.print_statement();
     }
 
+    if self.is_match(&[&TokenType::LeftBrace]) {
+      return Ok(Stmt::Block(Rc::new(BlockStmt {
+        statements: self.block()?.into_iter().map(Rc::new).collect(),
+      })));
+    }
+
     self.expression_statement()
   }
 
@@ -89,6 +95,17 @@ impl<'a> Parser<'a> {
     Ok(Stmt::Expression(Rc::new(ExpressionStmt {
       expression: Rc::new(value),
     })))
+  }
+
+  fn block(&mut self) -> Result<Vec<Stmt>, LoxError> {
+    let mut statements = Vec::new();
+
+    while !self.check(&TokenType::RightBrace) && !self.is_at_end() {
+      statements.push(self.declaration()?)
+    }
+
+    self.consume(&TokenType::RightBrace, "Expect '}' after block.")?;
+    Ok(statements)
   }
 
   fn assignment(&mut self) -> Result<Expr, LoxError> {

@@ -79,8 +79,8 @@ mod test {
   fn test_redefine_variable() {
     let mut env = Environment::new();
     env.define("foo", Object::Boolean(true));
-    env.define("foo", Object::Number(12.0));
-    assert!(matches!(env.values.get("foo"), Some(&Object::Number(n)) if n == 12.0));
+    env.define("foo", Object::Number(12.3));
+    assert!(matches!(env.values.get("foo"), Some(&Object::Number(n)) if n == 12.3));
   }
 
   #[test]
@@ -117,7 +117,7 @@ mod test {
   #[test]
   fn test_new_enclosed_environment() {
     let enc = Rc::new(RefCell::new(Environment::new()));
-    let env = Environment::new_with_enclosing(&enc);
+    let env = Environment::new_with_enclosing(&Rc::clone(&enc));
     assert_eq!(env.enclosing.unwrap().borrow().values, enc.borrow().values);
   }
 
@@ -125,7 +125,7 @@ mod test {
   fn test_get_from_enclosed_environment() {
     let enc = Rc::new(RefCell::new(Environment::new()));
     enc.borrow_mut().define("foo", Object::Number(77.8));
-    let env = Environment::new_with_enclosing(&enc);
+    let env = Environment::new_with_enclosing(&Rc::clone(&enc));
     let foo_tok = Token::new(TokenType::Identifier, "foo", None, 0);
     assert!(matches!(env.get(&foo_tok), Ok(Object::Number(n)) if n == 77.8))
   }
@@ -134,7 +134,7 @@ mod test {
   fn test_assign_to_enclosed_environment() {
     let enc = Rc::new(RefCell::new(Environment::new()));
     enc.borrow_mut().define("foo", Object::Number(77.8));
-    let mut env = Environment::new_with_enclosing(&enc);
+    let mut env = Environment::new_with_enclosing(&Rc::clone(&enc));
     let foo_tok = Token::new(TokenType::Identifier, "foo", None, 0);
     assert!(env.assign(&foo_tok, &Object::Number(89.5)).is_ok());
     assert!(matches!(env.get(&foo_tok), Ok(Object::Number(n)) if n == 89.5));

@@ -66,6 +66,8 @@ impl Lox {
       return Ok(());
     }
 
+    self.interpreter.print_environment();
+
     let mut scanner = Scanner::new(source);
     let tokens = scanner.scan_tokens()?;
     let mut parser = Parser::new(tokens);

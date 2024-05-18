@@ -37,6 +37,7 @@ fn main() -> io::Result<()> {
     "Stmt",
     &["error", "expr", "token"],
     &[
+      "Block      : Vec<Rc<Stmt>> statements",
       "Expression : Rc<Expr> expression",
       "Print      : Rc<Expr> expression",
       "Var        : Token name, Option<Rc<Expr>> initialiser",

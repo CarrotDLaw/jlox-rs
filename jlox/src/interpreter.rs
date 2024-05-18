@@ -4,13 +4,13 @@ use crate::{environment::*, error::*, expr::*, stmt::*, token::*};
 
 #[derive(Default)]
 pub struct Interpreter {
-  environment: Rc<RefCell<Environment>>,
+  environment: RefCell<Rc<RefCell<Environment>>>,
 }
 
 impl Interpreter {
   pub fn new() -> Interpreter {
     Interpreter {
-      environment: Rc::new(RefCell::new(Environment::new())),
+      environment: RefCell::new(Rc::new(RefCell::new(Environment::new()))),
     }
   }
 
@@ -32,6 +32,19 @@ impl Interpreter {
 
   fn execute(&self, stmt: &Rc<Stmt>) -> Result<(), LoxError> {
     stmt.accept(self)
+  }
+
+  fn execute_block(
+    &self,
+    statements: &[Rc<Stmt>],
+    environment: Environment,
+  ) -> Result<(), LoxError> {
+    let previous = self.environment.replace(Rc::new(RefCell::new(environment)));
+
+    let res = statements.iter().try_for_each(|s| self.execute(s));
+
+    self.environment.replace(previous);
+    res
   }
 
   fn is_truthy(&self, object: &Object) -> bool {
@@ -58,7 +71,11 @@ impl Interpreter {
 impl ExprVisitor<Object> for Interpreter {
   fn visit_assign_expr(&self, expr: &AssignExpr) -> Result<Object, LoxError> {
     let value = self.evaluate(&expr.value)?;
-    self.environment.borrow_mut().assign(&expr.name, &value)?;
+    self
+      .environment
+      .borrow()
+      .borrow_mut()
+      .assign(&expr.name, &value)?;
     Ok(value)
   }
 
@@ -163,11 +180,16 @@ impl ExprVisitor<Object> for Interpreter {
   }
 
   fn visit_variable_expr(&self, expr: &VariableExpr) -> Result<Object, LoxError> {
-    self.environment.borrow().get(&expr.name)
+    self.environment.borrow().borrow().get(&expr.name)
   }
 }
 
 impl StmtVisitor<()> for Interpreter {
+  fn visit_block_stmt(&self, stmt: &BlockStmt) -> Result<(), LoxError> {
+    let env = Environment::new_with_enclosing(&self.environment.borrow().clone());
+    self.execute_block(&stmt.statements, env)
+  }
+
   fn visit_expression_stmt(&self, stmt: &ExpressionStmt) -> Result<(), LoxError> {
     self.evaluate(&stmt.expression)?;
     Ok(())
@@ -187,6 +209,7 @@ impl StmtVisitor<()> for Interpreter {
 
     self
       .environment
+      .borrow()
       .borrow_mut()
       .define(stmt.name.get_lexeme(), value);
     Ok(())
