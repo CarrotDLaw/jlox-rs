@@ -39,6 +39,7 @@ fn main() -> io::Result<()> {
     &[
       "Block      : Vec<Rc<Stmt>> statements",
       "Expression : Rc<Expr> expression",
+      "If         : Rc<Expr> condition, Rc<Stmt> then_branch, Option<Rc<Stmt>> else_branch",
       "Print      : Rc<Expr> expression",
       "Var        : Token name, Option<Rc<Expr>> initialiser",
     ],

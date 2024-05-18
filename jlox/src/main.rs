@@ -15,8 +15,8 @@ fn main() {
   match args.len() {
     1 => lox.run_prompt(),
     2 => lox
-      .run_file(args.get(1).expect("Error reading input."))
-      .expect("Error opening file."),
+      .run_file(args.get(1).expect("ERROR READING INPUT."))
+      .expect("ERROR OPENING FILE."),
     _ => {
       eprintln!("Usage: jlox [script]");
       exit(64);
@@ -38,7 +38,7 @@ impl Lox {
   fn run_file(&self, path: &str) -> io::Result<()> {
     let bytes = read_to_string(path)?;
     match self.run(&bytes) {
-      Ok(_) => Ok(()),
+      Ok(_) => exit(0),
       Err(LoxError::RuntimeError { .. }) => exit(70),
       Err(_) => exit(65),
     }

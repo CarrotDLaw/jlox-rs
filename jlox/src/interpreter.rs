@@ -39,7 +39,7 @@ impl Interpreter {
     statements: &[Rc<Stmt>],
     environment: Environment,
   ) -> Result<(), LoxError> {
-    let previous = self.environment.replace(Rc::new(RefCell::new(environment)));
+    let previous = self.environment.replace(RefCell::new(environment).into());
 
     let res = statements.iter().try_for_each(|s| self.execute(s));
 
@@ -192,6 +192,18 @@ impl StmtVisitor<()> for Interpreter {
 
   fn visit_expression_stmt(&self, stmt: &ExpressionStmt) -> Result<(), LoxError> {
     self.evaluate(&stmt.expression)?;
+    Ok(())
+  }
+
+  fn visit_if_stmt(&self, stmt: &IfStmt) -> Result<(), LoxError> {
+    if self.is_truthy(&self.evaluate(&stmt.condition)?) {
+      return self.execute(&stmt.then_branch);
+    }
+
+    if let Some(b) = &stmt.else_branch {
+      return self.execute(b);
+    }
+
     Ok(())
   }
 
