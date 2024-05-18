@@ -37,11 +37,11 @@ impl Lox {
 
   fn run_file(&self, path: &str) -> io::Result<()> {
     let bytes = read_to_string(path)?;
-    if self.run(&bytes).is_err() {
-      exit(65);
+    match self.run(&bytes) {
+      Ok(_) => Ok(()),
+      Err(LoxError::RuntimeError { .. }) => exit(70),
+      Err(_) => exit(65),
     }
-
-    Ok(())
   }
 
   fn run_prompt(&self) {
@@ -65,8 +65,6 @@ impl Lox {
       self.interpreter.print_environment();
       return Ok(());
     }
-
-    self.interpreter.print_environment();
 
     let mut scanner = Scanner::new(source);
     let tokens = scanner.scan_tokens()?;

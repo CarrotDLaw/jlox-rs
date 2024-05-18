@@ -157,7 +157,7 @@ impl Scanner {
 
     if self.is_at_end() {
       return Err(LoxError::general_error(
-        self.current,
+        self.line,
         "Unterminated string.",
       ));
     }

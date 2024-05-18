@@ -109,7 +109,7 @@ impl ExprVisitor<Object> for Interpreter {
       };
     }
 
-    if let (Object::String(left), _) = (&left, &right) {
+    if let (Object::String(left), Object::Number(right)) = (&left, &right) {
       return match operator_type {
         TokenType::Plus => Ok(Object::String(format!("{left}{right}"))),
         TokenType::BangEqual => Ok(Object::Boolean(true)),
@@ -118,7 +118,7 @@ impl ExprVisitor<Object> for Interpreter {
       };
     }
 
-    if let (_, Object::String(right)) = (&left, &right) {
+    if let (Object::Number(left), Object::String(right)) = (&left, &right) {
       return match operator_type {
         TokenType::Plus => Ok(Object::String(format!("{left}{right}"))),
         TokenType::BangEqual => Ok(Object::Boolean(true)),
