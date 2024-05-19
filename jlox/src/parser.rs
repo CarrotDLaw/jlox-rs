@@ -144,7 +144,7 @@ impl<'a> Parser<'a> {
   }
 
   fn assignment(&mut self) -> Result<Expr, LoxError> {
-    let expr = self.equality()?;
+    let expr = self.or()?;
 
     if self.is_match(&[&TokenType::Assign]) {
       let equals = self.previous().clone();
@@ -162,6 +162,40 @@ impl<'a> Parser<'a> {
 
       self.had_error = true;
       LoxError::parse_error(&equals, "Invalid assignment target.");
+    }
+
+    Ok(expr)
+  }
+
+  fn or(&mut self) -> Result<Expr, LoxError> {
+    let mut expr = self.and()?;
+
+    while self.is_match(&[&TokenType::Or]) {
+      expr = Expr::Logical(
+        LogicalExpr {
+          left: expr.into(),
+          operator: self.previous().clone(),
+          right: self.and()?.into(),
+        }
+        .into(),
+      )
+    }
+
+    Ok(expr)
+  }
+
+  fn and(&mut self) -> Result<Expr, LoxError> {
+    let mut expr = self.equality()?;
+
+    while self.is_match(&[&TokenType::And]) {
+      expr = Expr::Logical(
+        LogicalExpr {
+          left: expr.into(),
+          operator: self.previous().clone(),
+          right: self.equality()?.into(),
+        }
+        .into(),
+      )
     }
 
     Ok(expr)

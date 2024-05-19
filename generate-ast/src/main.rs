@@ -27,6 +27,7 @@ fn main() -> io::Result<()> {
       "Binary   : Rc<Expr> left, Token operator, Rc<Expr> right",
       "Grouping : Rc<Expr> expression",
       "Literal  : Option<Object> value",
+      "Logical  : Rc<Expr> left, Token operator, Rc<Expr> right",
       "Unary    : Token operator, Rc<Expr> right",
       "Variable : Token name",
     ],

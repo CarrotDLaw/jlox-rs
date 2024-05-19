@@ -165,6 +165,20 @@ impl ExprVisitor<Object> for Interpreter {
     unreachable!()
   }
 
+  fn visit_logical_expr(&self, expr: &LogicalExpr) -> Result<Object, LoxError> {
+    let left = self.evaluate(&expr.left)?;
+
+    if expr.operator.is_type(&TokenType::Or) {
+      if self.is_truthy(&left) {
+        return Ok(left);
+      }
+    }else if !self.is_truthy(&left) {
+      return Ok(left);
+    }
+
+    self.evaluate(&expr.right)
+  }
+
   fn visit_unary_expr(&self, expr: &UnaryExpr) -> Result<Object, LoxError> {
     let right = self.evaluate(&expr.right)?;
 
