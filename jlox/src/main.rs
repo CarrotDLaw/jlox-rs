@@ -37,11 +37,18 @@ impl Lox {
 
   fn run_file(&self, path: &str) -> io::Result<()> {
     let bytes = read_to_string(path)?;
-    match self.run(&bytes) {
-      Ok(_) => exit(0),
-      Err(LoxError::RuntimeError { .. }) => exit(70),
-      Err(_) => exit(65),
+
+    if let Err(e) = self.run(&bytes) {
+      if e.is_runtime_error() {
+        exit(70);
+      }
+
+      if !e.is_runtime_error() {
+        exit(65);
+      }
     }
+
+    exit(0)
   }
 
   fn run_prompt(&self) {

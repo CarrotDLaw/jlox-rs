@@ -25,6 +25,7 @@ fn main() -> io::Result<()> {
     &[
       "Assign   : Token name, Rc<Expr> value",
       "Binary   : Rc<Expr> left, Token operator, Rc<Expr> right",
+      // "Call     : Rc<Expr> callee, Token bracket, Vec<Rc<Expr>> arguments",
       "Grouping : Rc<Expr> expression",
       "Literal  : Option<Literal> value",
       "Logical  : Rc<Expr> left, Token operator, Rc<Expr> right",
@@ -39,6 +40,7 @@ fn main() -> io::Result<()> {
     &["error", "expr", "token"],
     &[
       "Block      : Vec<Rc<Stmt>> statements",
+      "Break      : Token token",
       "Expression : Rc<Expr> expression",
       "If         : Rc<Expr> condition, Rc<Stmt> then_branch, Option<Rc<Stmt>> else_branch",
       "Print      : Rc<Expr> expression",

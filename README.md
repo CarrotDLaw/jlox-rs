@@ -3,3 +3,4 @@
 - chapter 6 challenges not completed
 - chapter 7 challenges (2) completed
 - chapter 8 challenges not completed
+- chapter 9 challenges completed

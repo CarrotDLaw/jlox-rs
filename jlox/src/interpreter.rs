@@ -204,6 +204,10 @@ impl StmtVisitor<()> for Interpreter {
     self.execute_block(&stmt.statements, env)
   }
 
+  fn visit_break_stmt(&self, _stmt: &BreakStmt) -> Result<(), LoxError> {
+    Err(LoxError::new_break())
+  }
+
   fn visit_expression_stmt(&self, stmt: &ExpressionStmt) -> Result<(), LoxError> {
     self.evaluate(&stmt.expression)?;
     Ok(())
@@ -243,7 +247,12 @@ impl StmtVisitor<()> for Interpreter {
 
   fn visit_while_stmt(&self, stmt: &WhileStmt) -> Result<(), LoxError> {
     while self.is_truthy(&self.evaluate(&stmt.condition)?) {
-      self.execute(&stmt.body)?;
+      let mut body = self.execute(&stmt.body);
+      if body.as_mut().is_err_and(|e| e.is_break()) {
+        break;
+      }
+
+      body?
     }
 
     Ok(())

@@ -138,7 +138,7 @@ impl Scanner {
           .iter()
           .collect::<String>()
           .parse::<f64>()
-          .map_err(|_| LoxError::general_error(self.line, "Could not parse number."))?,
+          .map_err(|_| LoxError::general_error(self.line, "COULD NOT PARSE NUMBER."))?,
       )),
     );
 
@@ -156,10 +156,7 @@ impl Scanner {
     }
 
     if self.is_at_end() {
-      return Err(LoxError::general_error(
-        self.line,
-        "Unterminated string.",
-      ));
+      return Err(LoxError::general_error(self.line, "Unterminated string."));
     }
 
     self.advance();
@@ -301,6 +298,7 @@ impl MatchIdentifier for str {
       "true" => TokenType::True,
       "var" => TokenType::Var,
       "while" => TokenType::While,
+      "break" => TokenType::Break,
       _ => TokenType::Identifier,
     }
   }

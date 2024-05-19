@@ -5,6 +5,7 @@ use crate::{error::*, expr::*, stmt::*, token::*};
 pub struct Parser<'a> {
   tokens: &'a [Token],
   current: usize,
+  loop_depth: usize,
   had_error: bool,
 }
 
@@ -13,6 +14,7 @@ impl<'a> Parser<'a> {
     Parser {
       tokens,
       current: 0,
+      loop_depth: 0,
       had_error: false,
     }
   }
@@ -35,7 +37,7 @@ impl<'a> Parser<'a> {
       return Ok(statements);
     }
 
-    Err(LoxError::ParseFailure)
+    Err(LoxError::new_parse_failure())
   }
 
   fn expression(&mut self) -> Result<Expr, LoxError> {
@@ -82,7 +84,25 @@ impl<'a> Parser<'a> {
       ));
     }
 
+    if self.is_match(&[&TokenType::Break]) {
+      return self.break_statement();
+    }
+
     self.expression_statement()
+  }
+
+  fn break_statement(&mut self) -> Result<Stmt, LoxError> {
+    if self.loop_depth == 0 {
+      self.had_error = true;
+      LoxError::parse_error(self.previous(), "Must be inside a loop to use 'break'.");
+    }
+    self.consume(&TokenType::Semicolon, "Expect ';' after 'break'.")?;
+    return Ok(Stmt::Break(
+      BreakStmt {
+        token: self.peek().clone(),
+      }
+      .into(),
+    ));
   }
 
   fn for_statement(&mut self) -> Result<Stmt, LoxError> {
@@ -112,8 +132,14 @@ impl<'a> Parser<'a> {
 
     self.consume(&TokenType::RightBracket, "Expect ')' after for clauses.")?;
 
-    let mut body = self.statement()?;
+    self.loop_depth += 1;
+    let body = self.statement();
+    if body.is_err() {
+      self.loop_depth -= 1;
+      return body;
+    }
 
+    let mut body = body?;
     if let Some(i) = increment {
       body = Stmt::Block(
         BlockStmt {
@@ -159,6 +185,7 @@ impl<'a> Parser<'a> {
       );
     }
 
+    self.loop_depth -= 1;
     Ok(body)
   }
 
@@ -216,12 +243,19 @@ impl<'a> Parser<'a> {
     self.consume(&TokenType::LeftBracket, "Expect '(' after 'while'.")?;
     let condition = self.expression()?;
     self.consume(&TokenType::RightBracket, "Expect ')' after condition.")?;
-    let body = self.statement()?;
 
+    self.loop_depth += 1;
+    let body = self.statement();
+    if body.is_err() {
+      self.loop_depth -= 1;
+      return body;
+    }
+
+    self.loop_depth -= 1;
     Ok(Stmt::While(
       WhileStmt {
         condition: condition.into(),
-        body: body.into(),
+        body: body?.into(),
       }
       .into(),
     ))

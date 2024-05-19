@@ -1,48 +1,82 @@
 use crate::token::*;
 
 #[derive(Debug)]
-pub enum LoxError {
-  GeneralError { line: usize, message: String },
-  ParseError { token: Token, message: String },
-  ParseFailure,
-  RuntimeError { token: Token, message: String },
-  TypeError,
+pub struct LoxError(LoxErrorType);
+
+#[derive(Debug)]
+enum LoxErrorType {
+  Break,
+  General { line: usize, message: String },
+  Parse { token: Token, message: String },
+  Runtime { token: Token, message: String },
+  Type,
 }
 
 impl LoxError {
+  pub fn new_break() -> LoxError {
+    LoxError(LoxErrorType::Break)
+  }
+
+  pub fn is_break(&self) -> bool {
+    if matches!(self.0, LoxErrorType::Break) {
+      return true;
+    }
+
+    false
+  }
+
   pub fn general_error(line: usize, message: &str) -> LoxError {
-    let err = LoxError::GeneralError {
+    let err = LoxError(LoxErrorType::General {
       line,
       message: message.to_string(),
-    };
+    });
     err.report();
     err
   }
 
   pub fn parse_error(token: &Token, message: &str) -> LoxError {
-    let err = LoxError::ParseError {
+    let err = LoxError(LoxErrorType::Parse {
       token: token.clone(),
       message: message.to_string(),
-    };
+    });
     err.report();
     err
   }
 
+  pub fn new_parse_failure() -> LoxError {
+    LoxError(LoxErrorType::Parse {
+      token: Token::new_eof(0),
+      message: "".to_string(),
+    })
+  }
+
   pub fn runtime_error(token: &Token, message: &str) -> LoxError {
-    let err = LoxError::RuntimeError {
+    let err = LoxError(LoxErrorType::Runtime {
       token: token.clone(),
       message: message.to_string(),
-    };
+    });
     err.report();
     err
+  }
+
+  pub fn new_type_error() -> LoxError {
+    LoxError(LoxErrorType::Type)
+  }
+
+  pub fn is_runtime_error(&self) -> bool {
+    if matches!(self.0, LoxErrorType::Runtime { .. }) {
+      return true;
+    }
+
+    false
   }
 
   fn report(&self) {
     match self {
-      LoxError::GeneralError { line, message } => {
+      LoxError(LoxErrorType::General { line, message }) => {
         eprintln!("[line {line}] Error: {message}")
       }
-      LoxError::ParseError { token, message } => {
+      LoxError(LoxErrorType::Parse { token, message }) => {
         let line = token.get_line();
         let location = if token.is_type(&TokenType::Eof) {
           "end".to_string()
@@ -52,7 +86,7 @@ impl LoxError {
 
         eprintln!("[line {line}] Error at {location}: {message}");
       }
-      LoxError::RuntimeError { token, message } => {
+      LoxError(LoxErrorType::Runtime { token, message }) => {
         let line = token.get_line();
 
         eprintln!("{message}");

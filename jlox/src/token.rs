@@ -90,7 +90,8 @@ impl Literal {
       return Ok(n);
     }
 
-    Err(LoxError::TypeError)
+    // Err(LoxError::TypeError)
+    Err(LoxError::new_type_error())
   }
 }
 
@@ -146,6 +147,7 @@ pub enum TokenType {
   True,
   Var,
   While,
+  Break,
 }
 
 #[cfg(test)]
