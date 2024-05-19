@@ -43,7 +43,7 @@ pub struct GroupingExpr {
 }
 
 pub struct LiteralExpr {
-  pub value: Option<Object>,
+  pub value: Option<Literal>,
 }
 
 pub struct LogicalExpr {

@@ -10,6 +10,7 @@ pub enum Stmt {
   If(Rc<IfStmt>),
   Print(Rc<PrintStmt>),
   Var(Rc<VarStmt>),
+  While(Rc<WhileStmt>),
 }
 
 impl Stmt {
@@ -20,6 +21,7 @@ impl Stmt {
       Stmt::If(stmt) => stmt_visitor.visit_if_stmt(stmt),
       Stmt::Print(stmt) => stmt_visitor.visit_print_stmt(stmt),
       Stmt::Var(stmt) => stmt_visitor.visit_var_stmt(stmt),
+      Stmt::While(stmt) => stmt_visitor.visit_while_stmt(stmt),
     }
   }
 }
@@ -47,10 +49,16 @@ pub struct VarStmt {
   pub initialiser: Option<Rc<Expr>>,
 }
 
+pub struct WhileStmt {
+  pub condition: Rc<Expr>,
+  pub body: Rc<Stmt>,
+}
+
 pub trait StmtVisitor<T> {
   fn visit_block_stmt(&self, stmt: &BlockStmt) -> Result<T, LoxError>;
   fn visit_expression_stmt(&self, stmt: &ExpressionStmt) -> Result<T, LoxError>;
   fn visit_if_stmt(&self, stmt: &IfStmt) -> Result<T, LoxError>;
   fn visit_print_stmt(&self, stmt: &PrintStmt) -> Result<T, LoxError>;
   fn visit_var_stmt(&self, stmt: &VarStmt) -> Result<T, LoxError>;
+  fn visit_while_stmt(&self, stmt: &WhileStmt) -> Result<T, LoxError>;
 }

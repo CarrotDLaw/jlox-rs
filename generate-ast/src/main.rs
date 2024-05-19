@@ -26,7 +26,7 @@ fn main() -> io::Result<()> {
       "Assign   : Token name, Rc<Expr> value",
       "Binary   : Rc<Expr> left, Token operator, Rc<Expr> right",
       "Grouping : Rc<Expr> expression",
-      "Literal  : Option<Object> value",
+      "Literal  : Option<Literal> value",
       "Logical  : Rc<Expr> left, Token operator, Rc<Expr> right",
       "Unary    : Token operator, Rc<Expr> right",
       "Variable : Token name",
@@ -43,6 +43,7 @@ fn main() -> io::Result<()> {
       "If         : Rc<Expr> condition, Rc<Stmt> then_branch, Option<Rc<Stmt>> else_branch",
       "Print      : Rc<Expr> expression",
       "Var        : Token name, Option<Rc<Expr>> initialiser",
+      "While      : Rc<Expr> condition, Rc<Stmt> body",
     ],
   )?;
 

@@ -4,7 +4,7 @@ use crate::{error::*, token::*};
 
 #[derive(Default, Debug)]
 pub struct Environment {
-  values: HashMap<String, Object>,
+  values: HashMap<String, Literal>,
   enclosing: Option<Rc<RefCell<Environment>>>,
 }
 
@@ -23,7 +23,7 @@ impl Environment {
     }
   }
 
-  pub fn get(&self, name: &Token) -> Result<Object, LoxError> {
+  pub fn get(&self, name: &Token) -> Result<Literal, LoxError> {
     let key = name.get_lexeme();
 
     if let Some(o) = self.values.get(key) {
@@ -40,7 +40,7 @@ impl Environment {
     ))
   }
 
-  pub fn assign(&mut self, name: &Token, value: &Object) -> Result<(), LoxError> {
+  pub fn assign(&mut self, name: &Token, value: &Literal) -> Result<(), LoxError> {
     let key = name.get_lexeme();
 
     if self.values.contains_key(key) {
@@ -58,7 +58,7 @@ impl Environment {
     ))
   }
 
-  pub fn define(&mut self, name: &str, value: Object) {
+  pub fn define(&mut self, name: &str, value: Literal) {
     self.values.insert(name.to_string(), value);
   }
 }
@@ -70,25 +70,25 @@ mod test {
   #[test]
   fn test_define_variable() {
     let mut env = Environment::new();
-    env.define("foo", Object::Boolean(true));
+    env.define("foo", Literal::Boolean(true));
     assert!(env.values.contains_key("foo"));
-    assert!(matches!(env.values.get("foo"), Some(&Object::Boolean(b)) if b));
+    assert!(matches!(env.values.get("foo"), Some(&Literal::Boolean(b)) if b));
   }
 
   #[test]
   fn test_redefine_variable() {
     let mut env = Environment::new();
-    env.define("foo", Object::Boolean(true));
-    env.define("foo", Object::Number(12.3));
-    assert!(matches!(env.values.get("foo"), Some(&Object::Number(n)) if n == 12.3));
+    env.define("foo", Literal::Boolean(true));
+    env.define("foo", Literal::Number(12.3));
+    assert!(matches!(env.values.get("foo"), Some(&Literal::Number(n)) if n == 12.3));
   }
 
   #[test]
   fn test_get_variable() {
     let mut env = Environment::new();
-    env.define("foo", Object::String("Foo".to_string()));
+    env.define("foo", Literal::String("Foo".to_string()));
     let foo_tok = Token::new(TokenType::Identifier, "foo", None, 0);
-    assert!(matches!(env.get(&foo_tok), Ok(Object::String(s)) if s == "Foo"));
+    assert!(matches!(env.get(&foo_tok), Ok(Literal::String(s)) if s == "Foo"));
   }
 
   #[test]
@@ -102,16 +102,16 @@ mod test {
   fn test_assign_to_undefined_variable() {
     let mut env = Environment::new();
     let foo_tok = Token::new(TokenType::Identifier, "foo", None, 0);
-    assert!(env.assign(&foo_tok, &Object::Nil).is_err());
+    assert!(env.assign(&foo_tok, &Literal::Nil).is_err());
   }
 
   #[test]
   fn test_reassign_to_defined_variable() {
     let mut env = Environment::new();
     let foo_tok = Token::new(TokenType::Identifier, "foo", None, 0);
-    env.define("foo", Object::Number(73.1));
-    assert!(env.assign(&foo_tok, &Object::Number(89.5)).is_ok());
-    assert!(matches!(env.get(&foo_tok), Ok(Object::Number(n)) if n == 89.5));
+    env.define("foo", Literal::Number(73.1));
+    assert!(env.assign(&foo_tok, &Literal::Number(89.5)).is_ok());
+    assert!(matches!(env.get(&foo_tok), Ok(Literal::Number(n)) if n == 89.5));
   }
 
   #[test]
@@ -124,19 +124,19 @@ mod test {
   #[test]
   fn test_get_from_enclosed_environment() {
     let enc = Rc::new(RefCell::new(Environment::new()));
-    enc.borrow_mut().define("foo", Object::Number(77.8));
+    enc.borrow_mut().define("foo", Literal::Number(77.8));
     let env = Environment::new_with_enclosing(&enc.clone());
     let foo_tok = Token::new(TokenType::Identifier, "foo", None, 0);
-    assert!(matches!(env.get(&foo_tok), Ok(Object::Number(n)) if n == 77.8))
+    assert!(matches!(env.get(&foo_tok), Ok(Literal::Number(n)) if n == 77.8))
   }
 
   #[test]
   fn test_assign_to_enclosed_environment() {
     let enc = Rc::new(RefCell::new(Environment::new()));
-    enc.borrow_mut().define("foo", Object::Number(77.8));
+    enc.borrow_mut().define("foo", Literal::Number(77.8));
     let mut env = Environment::new_with_enclosing(&enc.clone());
     let foo_tok = Token::new(TokenType::Identifier, "foo", None, 0);
-    assert!(env.assign(&foo_tok, &Object::Number(89.5)).is_ok());
-    assert!(matches!(env.get(&foo_tok), Ok(Object::Number(n)) if n == 89.5));
+    assert!(env.assign(&foo_tok, &Literal::Number(89.5)).is_ok());
+    assert!(matches!(env.get(&foo_tok), Ok(Literal::Number(n)) if n == 89.5));
   }
 }

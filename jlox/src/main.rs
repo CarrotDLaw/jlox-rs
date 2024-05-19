@@ -74,9 +74,6 @@ impl Lox {
     let tokens = scanner.scan_tokens()?;
     let mut parser = Parser::new(tokens);
     let statements = parser.parse()?;
-    if !parser.success() {
-      return Err(LoxError::ParseFailure);
-    }
 
     self.interpreter.interpret(
       &statements

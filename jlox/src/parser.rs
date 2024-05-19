@@ -17,18 +17,25 @@ impl<'a> Parser<'a> {
     }
   }
 
-  pub fn success(&self) -> bool {
-    !self.had_error
-  }
-
   pub fn parse(&mut self) -> Result<Vec<Stmt>, LoxError> {
     let mut statements = Vec::new();
 
     while !self.is_at_end() {
-      statements.push(self.declaration()?)
+      // if self.declaration() returns error, mark self.had_error to be true
+      // but do not immediately return
+      if let Ok(s) = self.declaration() {
+        statements.push(s);
+        continue;
+      }
+
+      self.had_error = true;
     }
 
-    Ok(statements)
+    if !self.had_error {
+      return Ok(statements);
+    }
+
+    Err(LoxError::ParseFailure)
   }
 
   fn expression(&mut self) -> Result<Expr, LoxError> {
@@ -50,12 +57,20 @@ impl<'a> Parser<'a> {
   }
 
   fn statement(&mut self) -> Result<Stmt, LoxError> {
-    if self.is_match(&[&TokenType::Print]) {
-      return self.print_statement();
+    if self.is_match(&[&TokenType::For]) {
+      return self.for_statement();
     }
 
     if self.is_match(&[&TokenType::If]) {
       return self.if_statement();
+    }
+
+    if self.is_match(&[&TokenType::Print]) {
+      return self.print_statement();
+    }
+
+    if self.is_match(&[&TokenType::While]) {
+      return self.while_statement();
     }
 
     if self.is_match(&[&TokenType::LeftBrace]) {
@@ -70,10 +85,87 @@ impl<'a> Parser<'a> {
     self.expression_statement()
   }
 
+  fn for_statement(&mut self) -> Result<Stmt, LoxError> {
+    self.consume(&TokenType::LeftBracket, "Expect '(' after 'for'.")?;
+
+    let initialiser = if self.is_match(&[&TokenType::Semicolon]) {
+      None
+    } else if self.is_match(&[&TokenType::Var]) {
+      Some(self.var_declaration()?)
+    } else {
+      Some(self.expression_statement()?)
+    };
+
+    let condition = if self.check(&TokenType::Semicolon) {
+      None
+    } else {
+      Some(self.expression()?)
+    };
+
+    self.consume(&TokenType::Semicolon, "Expect ';' after loop condition.")?;
+
+    let increment = if self.check(&TokenType::RightBracket) {
+      None
+    } else {
+      Some(self.expression()?)
+    };
+
+    self.consume(&TokenType::RightBracket, "Expect ')' after for clauses.")?;
+
+    let mut body = self.statement()?;
+
+    if let Some(i) = increment {
+      body = Stmt::Block(
+        BlockStmt {
+          statements: vec![
+            body.into(),
+            Stmt::Expression(
+              ExpressionStmt {
+                expression: i.into(),
+              }
+              .into(),
+            )
+            .into(),
+          ],
+        }
+        .into(),
+      )
+    }
+
+    body = Stmt::While(
+      WhileStmt {
+        condition: if let Some(c) = condition {
+          c.into()
+        } else {
+          Expr::Literal(
+            LiteralExpr {
+              value: Some(Literal::Boolean(true)),
+            }
+            .into(),
+          )
+          .into()
+        },
+        body: body.into(),
+      }
+      .into(),
+    );
+
+    if let Some(i) = initialiser {
+      body = Stmt::Block(
+        BlockStmt {
+          statements: vec![i.into(), body.into()],
+        }
+        .into(),
+      );
+    }
+
+    Ok(body)
+  }
+
   fn if_statement(&mut self) -> Result<Stmt, LoxError> {
-    self.consume(&TokenType::LeftParen, "Expect '(' after 'if'.")?;
+    self.consume(&TokenType::LeftBracket, "Expect '(' after 'if'.")?;
     let condition = self.expression()?.into();
-    self.consume(&TokenType::RightParen, "Expect ')' after if condition.")?;
+    self.consume(&TokenType::RightBracket, "Expect ')' after if condition.")?;
 
     let then_branch = self.statement()?.into();
     let else_branch = if self.is_match(&[&TokenType::Else]) {
@@ -107,7 +199,6 @@ impl<'a> Parser<'a> {
     let name = self
       .consume(&TokenType::Identifier, "Expect variable name.")?
       .clone();
-
     let initialiser = if self.is_match(&[&TokenType::Assign]) {
       Some(self.expression()?.into())
     } else {
@@ -121,12 +212,27 @@ impl<'a> Parser<'a> {
     Ok(Stmt::Var(VarStmt { name, initialiser }.into()))
   }
 
+  fn while_statement(&mut self) -> Result<Stmt, LoxError> {
+    self.consume(&TokenType::LeftBracket, "Expect '(' after 'while'.")?;
+    let condition = self.expression()?;
+    self.consume(&TokenType::RightBracket, "Expect ')' after condition.")?;
+    let body = self.statement()?;
+
+    Ok(Stmt::While(
+      WhileStmt {
+        condition: condition.into(),
+        body: body.into(),
+      }
+      .into(),
+    ))
+  }
+
   fn expression_statement(&mut self) -> Result<Stmt, LoxError> {
-    let value = self.expression()?;
+    let expr = self.expression()?;
     self.consume(&TokenType::Semicolon, "Expect ';' after expression.")?;
     Ok(Stmt::Expression(
       ExpressionStmt {
-        expression: value.into(),
+        expression: expr.into(),
       }
       .into(),
     ))
@@ -136,7 +242,7 @@ impl<'a> Parser<'a> {
     let mut statements = Vec::new();
 
     while !self.check(&TokenType::RightBrace) && !self.is_at_end() {
-      statements.push(self.declaration()?)
+      statements.push(self.declaration()?);
     }
 
     self.consume(&TokenType::RightBrace, "Expect '}' after block.")?;
@@ -292,7 +398,7 @@ impl<'a> Parser<'a> {
     if self.is_match(&[&TokenType::False]) {
       return Ok(Expr::Literal(
         LiteralExpr {
-          value: Some(Object::Boolean(false)),
+          value: Some(Literal::Boolean(false)),
         }
         .into(),
       ));
@@ -301,7 +407,7 @@ impl<'a> Parser<'a> {
     if self.is_match(&[&TokenType::True]) {
       return Ok(Expr::Literal(
         LiteralExpr {
-          value: Some(Object::Boolean(true)),
+          value: Some(Literal::Boolean(true)),
         }
         .into(),
       ));
@@ -310,7 +416,7 @@ impl<'a> Parser<'a> {
     if self.is_match(&[&TokenType::Nil]) {
       return Ok(Expr::Literal(
         LiteralExpr {
-          value: Some(Object::Nil),
+          value: Some(Literal::Nil),
         }
         .into(),
       ));
@@ -334,9 +440,9 @@ impl<'a> Parser<'a> {
       ));
     }
 
-    if self.is_match(&[&TokenType::LeftParen]) {
+    if self.is_match(&[&TokenType::LeftBracket]) {
       let expr = self.expression()?;
-      self.consume(&TokenType::RightParen, "Expect ')' after expression.")?;
+      self.consume(&TokenType::RightBracket, "Expect ')' after expression.")?;
       return Ok(Expr::Grouping(
         GroupingExpr {
           expression: expr.into(),

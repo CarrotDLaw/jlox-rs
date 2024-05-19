@@ -6,12 +6,12 @@ use crate::error::*;
 pub struct Token {
   token_type: TokenType,
   lexeme: String,
-  literal: Option<Object>,
+  literal: Option<Literal>,
   line: usize,
 }
 
 impl Token {
-  pub fn new(token_type: TokenType, lexeme: &str, literal: Option<Object>, line: usize) -> Token {
+  pub fn new(token_type: TokenType, lexeme: &str, literal: Option<Literal>, line: usize) -> Token {
     Token {
       token_type,
       lexeme: lexeme.to_string(),
@@ -37,7 +37,7 @@ impl Token {
     &self.lexeme
   }
 
-  pub fn get_literal(&self) -> &Option<Object> {
+  pub fn get_literal(&self) -> &Option<Literal> {
     &self.literal
   }
 
@@ -77,16 +77,16 @@ impl fmt::Display for Token {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Object {
+pub enum Literal {
   Number(f64),
   String(String),
   Boolean(bool),
   Nil,
 }
 
-impl Object {
+impl Literal {
   pub fn get_number(&self) -> Result<f64, LoxError> {
-    if let &Object::Number(n) = self {
+    if let &Literal::Number(n) = self {
       return Ok(n);
     }
 
@@ -94,21 +94,21 @@ impl Object {
   }
 }
 
-impl fmt::Display for Object {
+impl fmt::Display for Literal {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match self {
-      Object::Number(n) => write!(f, "{n}"),
-      Object::String(s) => write!(f, "{s}"),
-      Object::Boolean(b) => write!(f, "{b}"),
-      Object::Nil => write!(f, "nil"),
+      Literal::Number(n) => write!(f, "{n}"),
+      Literal::String(s) => write!(f, "{s}"),
+      Literal::Boolean(b) => write!(f, "{b}"),
+      Literal::Nil => write!(f, "nil"),
     }
   }
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenType {
-  LeftParen,
-  RightParen,
+  LeftBracket,
+  RightBracket,
   LeftBrace,
   RightBrace,
   Comma,
@@ -154,7 +154,7 @@ mod test {
 
   #[test]
   fn test_token_is_type() {
-    let token = Token::new(TokenType::Number, "123", Some(Object::Number(123.0)), 1);
+    let token = Token::new(TokenType::Number, "123", Some(Literal::Number(123.0)), 1);
     assert!(token.is_type(&TokenType::Number));
     assert!(!token.is_type(&TokenType::Nil));
   }

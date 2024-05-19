@@ -69,13 +69,13 @@ mod test {
       left: Rc::new(Expr::Unary(Rc::new(UnaryExpr {
         operator: Token::new(TokenType::Minus, "-", None, 1),
         right: Rc::new(Expr::Literal(Rc::new(LiteralExpr {
-          value: Some(Object::Number(123.0)),
+          value: Some(Literal::Number(123.0)),
         }))),
       }))),
       operator: Token::new(TokenType::Star, "*", None, 1),
       right: Rc::new(Expr::Grouping(Rc::new(GroupingExpr {
         expression: Rc::new(Expr::Literal(Rc::new(LiteralExpr {
-          value: Some(Object::Number(45.67)),
+          value: Some(Literal::Number(45.67)),
         }))),
       }))),
     }));

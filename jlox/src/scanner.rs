@@ -37,8 +37,8 @@ impl Scanner {
   fn scan_token(&mut self) -> Result<(), LoxError> {
     let c = self.advance();
     match c {
-      '(' => self.add_token(TokenType::LeftParen),
-      ')' => self.add_token(TokenType::RightParen),
+      '(' => self.add_token(TokenType::LeftBracket),
+      ')' => self.add_token(TokenType::RightBracket),
       '{' => self.add_token(TokenType::LeftBrace),
       '}' => self.add_token(TokenType::RightBrace),
       ',' => self.add_token(TokenType::Comma),
@@ -133,7 +133,7 @@ impl Scanner {
 
     self.add_token_and_literal(
       TokenType::Number,
-      Some(Object::Number(
+      Some(Literal::Number(
         self.source[self.start..self.current]
           .iter()
           .collect::<String>()
@@ -167,7 +167,7 @@ impl Scanner {
     let value = self.source[self.start + 1..self.current - 1]
       .iter()
       .collect::<String>();
-    self.add_token_and_literal(TokenType::String, Some(Object::String(value)));
+    self.add_token_and_literal(TokenType::String, Some(Literal::String(value)));
 
     Ok(())
   }
@@ -245,7 +245,7 @@ impl Scanner {
     self.add_token_and_literal(token_type, None);
   }
 
-  fn add_token_and_literal(&mut self, token_type: TokenType, literal: Option<Object>) {
+  fn add_token_and_literal(&mut self, token_type: TokenType, literal: Option<Literal>) {
     let text = self.source[self.start..self.current]
       .iter()
       .collect::<String>();

@@ -26,7 +26,7 @@ impl Interpreter {
     dbg!(&self.environment);
   }
 
-  fn evaluate(&self, expr: &Rc<Expr>) -> Result<Object, LoxError> {
+  fn evaluate(&self, expr: &Rc<Expr>) -> Result<Literal, LoxError> {
     expr.accept(self)
   }
 
@@ -47,8 +47,8 @@ impl Interpreter {
     res
   }
 
-  fn is_truthy(&self, object: &Object) -> bool {
-    !matches!(object, Object::Nil | Object::Boolean(false))
+  fn is_truthy(&self, object: &Literal) -> bool {
+    !matches!(object, Literal::Nil | Literal::Boolean(false))
   }
 
   fn internal_error(operator: &Token) -> LoxError {
@@ -68,8 +68,8 @@ impl Interpreter {
   }
 }
 
-impl ExprVisitor<Object> for Interpreter {
-  fn visit_assign_expr(&self, expr: &AssignExpr) -> Result<Object, LoxError> {
+impl ExprVisitor<Literal> for Interpreter {
+  fn visit_assign_expr(&self, expr: &AssignExpr) -> Result<Literal, LoxError> {
     let value = self.evaluate(&expr.value)?;
     self
       .environment
@@ -79,85 +79,85 @@ impl ExprVisitor<Object> for Interpreter {
     Ok(value)
   }
 
-  fn visit_binary_expr(&self, expr: &BinaryExpr) -> Result<Object, LoxError> {
+  fn visit_binary_expr(&self, expr: &BinaryExpr) -> Result<Literal, LoxError> {
     let left = self.evaluate(&expr.left)?;
     let right = self.evaluate(&expr.right)?;
     let operator_type = expr.operator.get_type();
 
-    if let (Object::Number(left), Object::Number(right)) = (&left, &right) {
+    if let (Literal::Number(left), Literal::Number(right)) = (&left, &right) {
       return match operator_type {
-        TokenType::Plus => Ok(Object::Number(left + right)),
-        TokenType::Minus => Ok(Object::Number(left - right)),
-        TokenType::Star => Ok(Object::Number(left * right)),
-        TokenType::Slash => Ok(Object::Number(left / right)),
-        TokenType::Greater => Ok(Object::Boolean(left > right)),
-        TokenType::GreaterEqual => Ok(Object::Boolean(left >= right)),
-        TokenType::Less => Ok(Object::Boolean(left < right)),
-        TokenType::LessEqual => Ok(Object::Boolean(left <= right)),
-        TokenType::BangEqual => Ok(Object::Boolean(left != right)),
-        TokenType::EqualEqual => Ok(Object::Boolean(left == right)),
+        TokenType::Plus => Ok(Literal::Number(left + right)),
+        TokenType::Minus => Ok(Literal::Number(left - right)),
+        TokenType::Star => Ok(Literal::Number(left * right)),
+        TokenType::Slash => Ok(Literal::Number(left / right)),
+        TokenType::Greater => Ok(Literal::Boolean(left > right)),
+        TokenType::GreaterEqual => Ok(Literal::Boolean(left >= right)),
+        TokenType::Less => Ok(Literal::Boolean(left < right)),
+        TokenType::LessEqual => Ok(Literal::Boolean(left <= right)),
+        TokenType::BangEqual => Ok(Literal::Boolean(left != right)),
+        TokenType::EqualEqual => Ok(Literal::Boolean(left == right)),
         _ => Err(Interpreter::internal_error(&expr.operator)),
       };
     }
 
-    if let (Object::String(left), Object::String(right)) = (&left, &right) {
+    if let (Literal::String(left), Literal::String(right)) = (&left, &right) {
       return match operator_type {
-        TokenType::Plus => Ok(Object::String(format!("{left}{right}"))),
-        TokenType::BangEqual => Ok(Object::Boolean(left != right)),
-        TokenType::EqualEqual => Ok(Object::Boolean(left == right)),
+        TokenType::Plus => Ok(Literal::String(format!("{left}{right}"))),
+        TokenType::BangEqual => Ok(Literal::Boolean(left != right)),
+        TokenType::EqualEqual => Ok(Literal::Boolean(left == right)),
         _ => Err(Interpreter::numbers_error(&expr.operator)),
       };
     }
 
-    if let (Object::String(left), Object::Number(right)) = (&left, &right) {
+    if let (Literal::String(left), Literal::Number(right)) = (&left, &right) {
       return match operator_type {
-        TokenType::Plus => Ok(Object::String(format!("{left}{right}"))),
-        TokenType::BangEqual => Ok(Object::Boolean(true)),
-        TokenType::EqualEqual => Ok(Object::Boolean(false)),
+        TokenType::Plus => Ok(Literal::String(format!("{left}{right}"))),
+        TokenType::BangEqual => Ok(Literal::Boolean(true)),
+        TokenType::EqualEqual => Ok(Literal::Boolean(false)),
         _ => Err(Interpreter::numbers_error(&expr.operator)),
       };
     }
 
-    if let (Object::Number(left), Object::String(right)) = (&left, &right) {
+    if let (Literal::Number(left), Literal::String(right)) = (&left, &right) {
       return match operator_type {
-        TokenType::Plus => Ok(Object::String(format!("{left}{right}"))),
-        TokenType::BangEqual => Ok(Object::Boolean(true)),
-        TokenType::EqualEqual => Ok(Object::Boolean(false)),
+        TokenType::Plus => Ok(Literal::String(format!("{left}{right}"))),
+        TokenType::BangEqual => Ok(Literal::Boolean(true)),
+        TokenType::EqualEqual => Ok(Literal::Boolean(false)),
         _ => Err(Interpreter::numbers_error(&expr.operator)),
       };
     }
 
-    if let (Object::Boolean(left), Object::Boolean(right)) = (&left, &right) {
+    if let (Literal::Boolean(left), Literal::Boolean(right)) = (&left, &right) {
       return match operator_type {
-        TokenType::BangEqual => Ok(Object::Boolean(left != right)),
-        TokenType::EqualEqual => Ok(Object::Boolean(left == right)),
+        TokenType::BangEqual => Ok(Literal::Boolean(left != right)),
+        TokenType::EqualEqual => Ok(Literal::Boolean(left == right)),
         TokenType::Plus => Err(Interpreter::numbers_or_strings_error(&expr.operator)),
         _ => Err(Interpreter::numbers_error(&expr.operator)),
       };
     }
 
-    if let (Object::Nil, Object::Nil) = (&left, &right) {
+    if let (Literal::Nil, Literal::Nil) = (&left, &right) {
       return match operator_type {
-        TokenType::BangEqual => Ok(Object::Boolean(false)),
-        TokenType::EqualEqual => Ok(Object::Boolean(true)),
+        TokenType::BangEqual => Ok(Literal::Boolean(false)),
+        TokenType::EqualEqual => Ok(Literal::Boolean(true)),
         TokenType::Plus => Err(Interpreter::numbers_or_strings_error(&expr.operator)),
         _ => Err(Interpreter::numbers_error(&expr.operator)),
       };
     }
 
     match operator_type {
-      TokenType::BangEqual => Ok(Object::Boolean(true)),
-      TokenType::EqualEqual => Ok(Object::Boolean(false)),
+      TokenType::BangEqual => Ok(Literal::Boolean(true)),
+      TokenType::EqualEqual => Ok(Literal::Boolean(false)),
       TokenType::Plus => Err(Interpreter::numbers_or_strings_error(&expr.operator)),
       _ => Err(Interpreter::numbers_error(&expr.operator)),
     }
   }
 
-  fn visit_grouping_expr(&self, expr: &GroupingExpr) -> Result<Object, LoxError> {
+  fn visit_grouping_expr(&self, expr: &GroupingExpr) -> Result<Literal, LoxError> {
     self.evaluate(&expr.expression)
   }
 
-  fn visit_literal_expr(&self, expr: &LiteralExpr) -> Result<Object, LoxError> {
+  fn visit_literal_expr(&self, expr: &LiteralExpr) -> Result<Literal, LoxError> {
     if let Some(v) = &expr.value {
       return Ok(v.clone());
     }
@@ -165,26 +165,26 @@ impl ExprVisitor<Object> for Interpreter {
     unreachable!()
   }
 
-  fn visit_logical_expr(&self, expr: &LogicalExpr) -> Result<Object, LoxError> {
+  fn visit_logical_expr(&self, expr: &LogicalExpr) -> Result<Literal, LoxError> {
     let left = self.evaluate(&expr.left)?;
 
     if expr.operator.is_type(&TokenType::Or) {
       if self.is_truthy(&left) {
         return Ok(left);
       }
-    }else if !self.is_truthy(&left) {
+    } else if !self.is_truthy(&left) {
       return Ok(left);
     }
 
     self.evaluate(&expr.right)
   }
 
-  fn visit_unary_expr(&self, expr: &UnaryExpr) -> Result<Object, LoxError> {
+  fn visit_unary_expr(&self, expr: &UnaryExpr) -> Result<Literal, LoxError> {
     let right = self.evaluate(&expr.right)?;
 
     match expr.operator.get_type() {
-      TokenType::Bang => Ok(Object::Boolean(!self.is_truthy(&right))),
-      TokenType::Minus => Ok(Object::Number(
+      TokenType::Bang => Ok(Literal::Boolean(!self.is_truthy(&right))),
+      TokenType::Minus => Ok(Literal::Number(
         -right
           .get_number()
           .map_err(|_| Interpreter::number_error(&expr.operator))?,
@@ -193,7 +193,7 @@ impl ExprVisitor<Object> for Interpreter {
     }
   }
 
-  fn visit_variable_expr(&self, expr: &VariableExpr) -> Result<Object, LoxError> {
+  fn visit_variable_expr(&self, expr: &VariableExpr) -> Result<Literal, LoxError> {
     self.environment.borrow().borrow().get(&expr.name)
   }
 }
@@ -230,7 +230,7 @@ impl StmtVisitor<()> for Interpreter {
     let value = if let Some(i) = &stmt.initialiser {
       self.evaluate(i)?
     } else {
-      Object::Nil
+      Literal::Nil
     };
 
     self
@@ -238,6 +238,14 @@ impl StmtVisitor<()> for Interpreter {
       .borrow()
       .borrow_mut()
       .define(stmt.name.get_lexeme(), value);
+    Ok(())
+  }
+
+  fn visit_while_stmt(&self, stmt: &WhileStmt) -> Result<(), LoxError> {
+    while self.is_truthy(&self.evaluate(&stmt.condition)?) {
+      self.execute(&stmt.body)?;
+    }
+
     Ok(())
   }
 }
