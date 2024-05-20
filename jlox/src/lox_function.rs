@@ -15,7 +15,7 @@ impl LoxFunction {
       closure: closure.clone(),
       name: declaration.name.clone(),
       params: declaration.params.clone().into(),
-      body: declaration.body.clone().into(),
+      body: declaration.body.clone(),
     }
   }
 }

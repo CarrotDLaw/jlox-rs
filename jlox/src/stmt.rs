@@ -33,7 +33,7 @@ impl Stmt {
 }
 
 pub struct BlockStmt {
-  pub statements: Vec<Rc<Stmt>>,
+  pub statements: Rc<Vec<Rc<Stmt>>>,
 }
 
 pub struct BreakStmt {
@@ -47,7 +47,7 @@ pub struct ExpressionStmt {
 pub struct FunctionStmt {
   pub name: Token,
   pub params: Vec<Token>,
-  pub body: Vec<Rc<Stmt>>,
+  pub body: Rc<Vec<Rc<Stmt>>>,
 }
 
 pub struct IfStmt {

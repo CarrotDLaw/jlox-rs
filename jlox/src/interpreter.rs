@@ -1,8 +1,8 @@
 use std::{cell::RefCell, rc::Rc};
 
 use crate::{
-  environment::*, error::*, expr::*, lox_callable::Callable, lox_function::LoxFunction,
-  lox_native_function::*, stmt::*, token::*,
+  environment::*, error::*, expr::*, lox_callable::*, lox_function::*, lox_native_function::*,
+  stmt::*, token::*,
 };
 
 #[derive(Default, Clone)]
@@ -175,7 +175,7 @@ impl ExprVisitor<Literal> for Interpreter {
     let callee = self.evaluate(&expr.callee)?;
 
     let mut arguments = Vec::new();
-    for argument in &expr.arguments {
+    for argument in expr.arguments.as_slice().iter() {
       arguments.push(self.evaluate(argument)?);
     }
 

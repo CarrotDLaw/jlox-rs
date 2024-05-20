@@ -15,8 +15,8 @@ impl Resolver {
     }
   }
 
-  fn resolve(&self, statements: &[Rc<Stmt>]) -> Result<(), LoxError> {
-    for statement in statements {
+  fn resolve(&self, statements: &Rc<[Rc<Stmt>]>) -> Result<(), LoxError> {
+    for statement in statements.iter() {
       self.resolve_stmt(statement)?;
     }
 
@@ -115,7 +115,7 @@ impl ExprVisitor<()> for Resolver {
 impl StmtVisitor<()> for Resolver {
   fn visit_block_stmt(&self, stmt: &BlockStmt) -> Result<(), LoxError> {
     self.begin_scope();
-    self.resolve(&stmt.statements)?;
+    self.resolve(&stmt.statements.as_slice().into())?;
     self.end_scope();
     Ok(())
   }

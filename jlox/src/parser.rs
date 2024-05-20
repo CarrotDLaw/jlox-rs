@@ -84,7 +84,12 @@ impl<'a> Parser<'a> {
     if self.is_match(&[&TokenType::LeftBrace]) {
       return Ok(Stmt::Block(
         BlockStmt {
-          statements: self.block()?.into_iter().map(Rc::new).collect(),
+          statements: self
+            .block()?
+            .into_iter()
+            .map(Rc::new)
+            .collect::<Vec<Rc<Stmt>>>()
+            .into(),
         }
         .into(),
       ));
@@ -158,7 +163,8 @@ impl<'a> Parser<'a> {
               .into(),
             )
             .into(),
-          ],
+          ]
+          .into(),
         }
         .into(),
       )
@@ -185,7 +191,7 @@ impl<'a> Parser<'a> {
     if let Some(i) = initialiser {
       body = Stmt::Block(
         BlockStmt {
-          statements: vec![i.into(), body.into()],
+          statements: vec![i.into(), body.into()].into(),
         }
         .into(),
       );
@@ -327,7 +333,12 @@ impl<'a> Parser<'a> {
       &format!("Expect '{{' before {kind} body."),
     )?;
 
-    let body = self.block()?.into_iter().map(Rc::new).collect();
+    let body = self
+      .block()?
+      .into_iter()
+      .map(Rc::new)
+      .collect::<Vec<Rc<Stmt>>>()
+      .into();
 
     Ok(Stmt::Function(FunctionStmt { name, params, body }.into()))
   }
@@ -514,7 +525,8 @@ impl<'a> Parser<'a> {
         arguments: arguments
           .into_iter()
           .map(Rc::new)
-          .collect::<Vec<Rc<Expr>>>(),
+          .collect::<Vec<Rc<Expr>>>()
+          .into(),
       }
       .into(),
     ))

@@ -43,7 +43,7 @@ pub struct BinaryExpr {
 pub struct CallExpr {
   pub callee: Rc<Expr>,
   pub bracket: Token,
-  pub arguments: Vec<Rc<Expr>>,
+  pub arguments: Rc<Vec<Rc<Expr>>>,
 }
 
 pub struct GroupingExpr {
