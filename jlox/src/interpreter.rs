@@ -5,7 +5,7 @@ use crate::{
   lox_native_function::*, stmt::*, token::*,
 };
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Interpreter {
   globals: Rc<RefCell<Environment>>,
   environment: RefCell<Rc<RefCell<Environment>>>,
@@ -28,8 +28,8 @@ impl Interpreter {
     }
   }
 
-  pub fn interpret(&self, statements: &[Rc<Stmt>]) -> Result<(), LoxError> {
-    for statement in statements {
+  pub fn interpret(&self, statements: &Rc<[Rc<Stmt>]>) -> Result<(), LoxError> {
+    for statement in statements.iter() {
       self.execute(statement)?;
     }
 
@@ -54,7 +54,7 @@ impl Interpreter {
 
   pub fn execute_block(
     &self,
-    statements: &[Rc<Stmt>],
+    statements: &Rc<[Rc<Stmt>]>,
     environment: Environment,
   ) -> Result<(), LoxError> {
     let previous = self.environment.replace(RefCell::new(environment).into());
@@ -191,7 +191,7 @@ impl ExprVisitor<Literal> for Interpreter {
         ));
       }
 
-      return f.fun.call(self, arguments);
+      return f.fun.call(self, &arguments);
     }
 
     Err(LoxError::runtime_error(
@@ -248,7 +248,7 @@ impl ExprVisitor<Literal> for Interpreter {
 impl StmtVisitor<()> for Interpreter {
   fn visit_block_stmt(&self, stmt: &BlockStmt) -> Result<(), LoxError> {
     let environment = Environment::new_with_enclosing(&self.environment.borrow().clone());
-    self.execute_block(&stmt.statements, environment)
+    self.execute_block(&stmt.statements.as_slice().into(), environment)
   }
 
   fn visit_break_stmt(&self, _stmt: &BreakStmt) -> Result<(), LoxError> {
@@ -346,7 +346,8 @@ mod test {
       &statements
         .into_iter()
         .map(Rc::new)
-        .collect::<Vec<Rc<Stmt>>>(),
+        .collect::<Vec<Rc<Stmt>>>()
+        .into(),
     )?;
 
     Ok(())
@@ -365,7 +366,8 @@ mod test {
       &statements
         .into_iter()
         .map(Rc::new)
-        .collect::<Vec<Rc<Stmt>>>(),
+        .collect::<Vec<Rc<Stmt>>>()
+        .into(),
     )?;
 
     Ok(())

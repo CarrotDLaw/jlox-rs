@@ -86,7 +86,8 @@ impl Lox {
       &statements
         .into_iter()
         .map(Rc::new)
-        .collect::<Vec<Rc<Stmt>>>(),
+        .collect::<Vec<Rc<Stmt>>>()
+        .into(),
     )?;
 
     Ok(())

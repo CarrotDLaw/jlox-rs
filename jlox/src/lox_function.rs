@@ -1,12 +1,12 @@
 use std::{cell::RefCell, fmt, rc::Rc};
 
-use crate::{environment::*, error::*, lox_callable::*, stmt::*, token::*};
+use crate::{environment::*, error::*, interpreter::*, lox_callable::*, stmt::*, token::*};
 
 pub struct LoxFunction {
   closure: Rc<RefCell<Environment>>,
   name: Token,
-  params: Vec<Token>,
-  body: Vec<Rc<Stmt>>,
+  params: Rc<Vec<Token>>,
+  body: Rc<Vec<Rc<Stmt>>>,
 }
 
 impl LoxFunction {
@@ -14,8 +14,8 @@ impl LoxFunction {
     LoxFunction {
       closure: closure.clone(),
       name: declaration.name.clone(),
-      params: declaration.params.clone(),
-      body: declaration.body.clone(),
+      params: declaration.params.clone().into(),
+      body: declaration.body.clone().into(),
     }
   }
 }
@@ -25,18 +25,14 @@ impl LoxCallable for LoxFunction {
     self.params.len() as u8
   }
 
-  fn call(
-    &self,
-    interpreter: &crate::interpreter::Interpreter,
-    arguments: Vec<crate::token::Literal>,
-  ) -> Result<Literal, LoxError> {
+  fn call(&self, interpreter: &Interpreter, arguments: &[Literal]) -> Result<Literal, LoxError> {
     let mut environment = Environment::new_with_enclosing(&self.closure.clone());
 
     for (param, arg) in self.params.iter().zip(arguments.iter()) {
       environment.define(param.get_lexeme(), arg.clone());
     }
 
-    if let Err(v) = interpreter.execute_block(&self.body, environment) {
+    if let Err(v) = interpreter.execute_block(&self.body.as_slice().into(), environment) {
       return v.get_return_value();
     }
 
