@@ -81,7 +81,7 @@ fn define_ast(
         format!("{field_name}: {field_type}")
       })
       .collect::<Vec<String>>();
-    tree_types.push(TreeType { class_name, fields })
+    tree_types.push(TreeType { class_name, fields });
   }
 
   writeln!(file)?;

@@ -23,7 +23,7 @@ impl Token {
   pub fn new_eof(line: usize) -> Token {
     Token {
       token_type: TokenType::Eof,
-      lexeme: "".to_string(),
+      lexeme: String::new(),
       literal: None,
       line,
     }
@@ -67,11 +67,10 @@ impl fmt::Display for Token {
       "{:?} {} {}",
       self.token_type,
       self.lexeme,
-      if let Some(literal) = &self.literal {
-        literal.to_string()
-      } else {
-        "None".to_string()
-      }
+      self
+        .literal
+        .as_ref()
+        .map_or_else(|| "None".to_string(), |literal| literal.to_string())
     )
   }
 }
