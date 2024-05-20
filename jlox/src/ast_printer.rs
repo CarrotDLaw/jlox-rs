@@ -32,6 +32,10 @@ impl ExprVisitor<String> for AstPrinter {
     self.parenthesise(expr.operator.get_lexeme(), &[&expr.left, &expr.right])
   }
 
+  fn visit_call_expr(&self, _expr: &CallExpr) -> Result<String, LoxError> {
+    todo!()
+  }
+
   fn visit_grouping_expr(&self, expr: &GroupingExpr) -> Result<String, LoxError> {
     self.parenthesise("group", &[&expr.expression])
   }

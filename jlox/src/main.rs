@@ -68,11 +68,11 @@ impl Lox {
   }
 
   fn run(&self, source: &str) -> Result<(), LoxError> {
-    if source.trim() == "!" {
+    if source.trim().eq("!") {
       exit(0);
     }
 
-    if source.trim() == "@" {
+    if source.trim().eq("@") {
       self.interpreter.print_environment();
       return Ok(());
     }

@@ -23,7 +23,7 @@ impl<'a> Parser<'a> {
     let mut statements = Vec::new();
 
     while !self.is_at_end() {
-      // if self.declaration() returns error, mark self.had_error to be true
+      // if self.declaration() returns error, mark self.had_error as true
       // but do not immediately return
       if let Ok(s) = self.declaration() {
         statements.push(s);
@@ -45,7 +45,9 @@ impl<'a> Parser<'a> {
   }
 
   fn declaration(&mut self) -> Result<Stmt, LoxError> {
-    let res = if self.is_match(&[&TokenType::Var]) {
+    let res = if self.is_match(&[&TokenType::Fun]) {
+      self.function("function")
+    } else if self.is_match(&[&TokenType::Var]) {
       self.var_declaration()
     } else {
       self.statement()
@@ -71,6 +73,10 @@ impl<'a> Parser<'a> {
       return self.print_statement();
     }
 
+    if self.is_match(&[&TokenType::Return]) {
+      return self.return_statement();
+    }
+
     if self.is_match(&[&TokenType::While]) {
       return self.while_statement();
     }
@@ -92,7 +98,7 @@ impl<'a> Parser<'a> {
   }
 
   fn break_statement(&mut self) -> Result<Stmt, LoxError> {
-    if self.loop_depth == 0 {
+    if self.loop_depth.eq(&0) {
       self.had_error = true;
       LoxError::parse_error(self.previous(), "Must be inside a loop to use 'break'.");
     }
@@ -222,6 +228,18 @@ impl<'a> Parser<'a> {
     ))
   }
 
+  fn return_statement(&mut self) -> Result<Stmt, LoxError> {
+    let keyword = self.previous().clone();
+    let value = if self.check(&TokenType::Semicolon) {
+      None
+    } else {
+      Some(self.expression()?.into())
+    };
+
+    self.consume(&TokenType::Semicolon, "Expect ';' after return value.")?;
+    Ok(Stmt::Return(ReturnStmt { keyword, value }.into()))
+  }
+
   fn var_declaration(&mut self) -> Result<Stmt, LoxError> {
     let name = self
       .consume(&TokenType::Identifier, "Expect variable name.")?
@@ -272,6 +290,48 @@ impl<'a> Parser<'a> {
     ))
   }
 
+  fn function(&mut self, kind: &str) -> Result<Stmt, LoxError> {
+    let name = self
+      .consume(&TokenType::Identifier, &format!("Expect {kind} name."))?
+      .clone();
+
+    self.consume(
+      &TokenType::LeftBracket,
+      &format!("Expect '(' after {kind} name."),
+    )?;
+
+    let mut params = Vec::new();
+    if !self.check(&TokenType::RightBracket) {
+      params.push(
+        self
+          .consume(&TokenType::Identifier, "Expect parameter name.")?
+          .clone(),
+      );
+      while self.is_match(&[&TokenType::Comma]) {
+        if params.len() >= 255 {
+          self.had_error = true;
+          LoxError::parse_error(self.peek(), "Can't have more than 255 parameters.");
+        }
+        params.push(
+          self
+            .consume(&TokenType::Identifier, "Expect parameter name.")?
+            .clone(),
+        );
+      }
+    }
+
+    self.consume(&TokenType::RightBracket, "Expect ')' after parameters.")?;
+
+    self.consume(
+      &TokenType::LeftBrace,
+      &format!("Expect '{{' before {kind} body."),
+    )?;
+
+    let body = self.block()?.into_iter().map(Rc::new).collect();
+
+    Ok(Stmt::Function(FunctionStmt { name, params, body }.into()))
+  }
+
   fn block(&mut self) -> Result<Vec<Stmt>, LoxError> {
     let mut statements = Vec::new();
 
@@ -279,7 +339,7 @@ impl<'a> Parser<'a> {
       statements.push(self.declaration()?);
     }
 
-    self.consume(&TokenType::RightBrace, "Expect '}' after block.")?;
+    self.consume(&TokenType::RightBrace, "Expect '}}' after block.")?;
     Ok(statements)
   }
 
@@ -425,7 +485,53 @@ impl<'a> Parser<'a> {
       ));
     }
 
-    self.primary()
+    self.call()
+  }
+
+  fn finish_call(&mut self, callee: Rc<Expr>) -> Result<Expr, LoxError> {
+    let mut arguments = Vec::new();
+
+    if !self.check(&TokenType::RightBracket) {
+      arguments.push(self.expression()?);
+      while self.is_match(&[&TokenType::Comma]) {
+        if arguments.len() >= 255 {
+          self.had_error = true;
+          return Err(LoxError::parse_error(
+            self.peek(),
+            "Can't have more than 255 arguments.",
+          ));
+        }
+        arguments.push(self.expression()?);
+      }
+    }
+
+    let bracket = self.consume(&TokenType::RightBracket, "Expect ')' after arguments.")?;
+
+    Ok(Expr::Call(
+      CallExpr {
+        callee,
+        bracket: bracket.clone(),
+        arguments: arguments
+          .into_iter()
+          .map(Rc::new)
+          .collect::<Vec<Rc<Expr>>>(),
+      }
+      .into(),
+    ))
+  }
+
+  fn call(&mut self) -> Result<Expr, LoxError> {
+    let mut expr = self.primary()?;
+
+    loop {
+      if self.is_match(&[&TokenType::LeftBracket]) {
+        expr = self.finish_call(expr.into())?;
+      } else {
+        break;
+      }
+    }
+
+    Ok(expr)
   }
 
   fn primary(&mut self) -> Result<Expr, LoxError> {

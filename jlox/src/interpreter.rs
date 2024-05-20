@@ -1,16 +1,30 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::{environment::*, error::*, expr::*, stmt::*, token::*};
+use crate::{
+  environment::*, error::*, expr::*, lox_callable::Callable, lox_function::LoxFunction,
+  lox_native_function::*, stmt::*, token::*,
+};
 
 #[derive(Default)]
 pub struct Interpreter {
+  globals: Rc<RefCell<Environment>>,
   environment: RefCell<Rc<RefCell<Environment>>>,
 }
 
 impl Interpreter {
   pub fn new() -> Interpreter {
+    let globals = Rc::new(RefCell::new(Environment::new()));
+
+    globals.borrow_mut().define(
+      "clock",
+      Literal::Function(Callable {
+        fun: Rc::new(Clock),
+      }),
+    );
+
     Interpreter {
-      environment: RefCell::new(Rc::new(RefCell::new(Environment::new()))),
+      globals: globals.clone(),
+      environment: RefCell::new(globals),
     }
   }
 
@@ -20,6 +34,10 @@ impl Interpreter {
     }
 
     Ok(())
+  }
+
+  pub fn get_globals(&self) -> &Rc<RefCell<Environment>> {
+    &self.globals
   }
 
   pub fn print_environment(&self) {
@@ -34,7 +52,7 @@ impl Interpreter {
     stmt.accept(self)
   }
 
-  fn execute_block(
+  pub fn execute_block(
     &self,
     statements: &[Rc<Stmt>],
     environment: Environment,
@@ -153,6 +171,35 @@ impl ExprVisitor<Literal> for Interpreter {
     }
   }
 
+  fn visit_call_expr(&self, expr: &CallExpr) -> Result<Literal, LoxError> {
+    let callee = self.evaluate(&expr.callee)?;
+
+    let mut arguments = Vec::new();
+    for argument in &expr.arguments {
+      arguments.push(self.evaluate(argument)?);
+    }
+
+    if let Literal::Function(f) = callee {
+      if arguments.len() != f.fun.arity().into() {
+        return Err(LoxError::runtime_error(
+          &expr.bracket,
+          &format!(
+            "Expected {} arguments but got {}.",
+            f.fun.arity(),
+            arguments.len()
+          ),
+        ));
+      }
+
+      return f.fun.call(self, arguments);
+    }
+
+    Err(LoxError::runtime_error(
+      &expr.bracket,
+      "Can only call functions and classes.",
+    ))
+  }
+
   fn visit_grouping_expr(&self, expr: &GroupingExpr) -> Result<Literal, LoxError> {
     self.evaluate(&expr.expression)
   }
@@ -200,8 +247,8 @@ impl ExprVisitor<Literal> for Interpreter {
 
 impl StmtVisitor<()> for Interpreter {
   fn visit_block_stmt(&self, stmt: &BlockStmt) -> Result<(), LoxError> {
-    let env = Environment::new_with_enclosing(&self.environment.borrow().clone());
-    self.execute_block(&stmt.statements, env)
+    let environment = Environment::new_with_enclosing(&self.environment.borrow().clone());
+    self.execute_block(&stmt.statements, environment)
   }
 
   fn visit_break_stmt(&self, _stmt: &BreakStmt) -> Result<(), LoxError> {
@@ -210,6 +257,19 @@ impl StmtVisitor<()> for Interpreter {
 
   fn visit_expression_stmt(&self, stmt: &ExpressionStmt) -> Result<(), LoxError> {
     self.evaluate(&stmt.expression)?;
+    Ok(())
+  }
+
+  fn visit_function_stmt(&self, stmt: &FunctionStmt) -> Result<(), LoxError> {
+    let function = LoxFunction::new(&self.environment.borrow(), stmt);
+
+    self.environment.borrow().borrow_mut().define(
+      stmt.name.get_lexeme(),
+      Literal::Function(Callable {
+        fun: Rc::new(function),
+      }),
+    );
+
     Ok(())
   }
 
@@ -228,6 +288,14 @@ impl StmtVisitor<()> for Interpreter {
   fn visit_print_stmt(&self, stmt: &PrintStmt) -> Result<(), LoxError> {
     println!("{}", self.evaluate(&stmt.expression)?);
     Ok(())
+  }
+
+  fn visit_return_stmt(&self, stmt: &ReturnStmt) -> Result<(), LoxError> {
+    if let Some(v) = &stmt.value {
+      Err(LoxError::new_return(&self.evaluate(v)?))
+    } else {
+      Err(LoxError::new_return(&Literal::Nil))
+    }
   }
 
   fn visit_var_stmt(&self, stmt: &VarStmt) -> Result<(), LoxError> {

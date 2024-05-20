@@ -98,7 +98,7 @@ impl Scanner {
       '\n' => self.line += 1,
       '"' => self.string()?,
       '0'..='9' => self.number()?,
-      _ if c.is_ascii_alphabetic() || c == '_' => self.identifier(),
+      _ if c.is_valid_for_lox_identifier() => self.identifier(),
       _ => return Err(LoxError::general_error(self.line, "Unexpected character.")),
     }
 
@@ -106,7 +106,7 @@ impl Scanner {
   }
 
   fn identifier(&mut self) {
-    while self.peek().is_ascii_alphanumeric() {
+    while self.peek().is_some_and(|c| c.is_valid_for_lox_identifier()) {
       self.advance();
     }
 
@@ -119,14 +119,14 @@ impl Scanner {
   }
 
   fn number(&mut self) -> Result<(), LoxError> {
-    while self.peek().is_ascii_digit() {
+    while self.peek().is_some_and(|c| c.is_ascii_digit()) {
       self.advance();
     }
 
-    if self.peek() == Some(&'.') && self.peek_next().is_ascii_digit() {
+    if self.peek() == Some(&'.') && self.peek_next().is_some_and(|c| c.is_ascii_digit()) {
       self.advance();
 
-      while self.peek().is_ascii_digit() {
+      while self.peek().is_some_and(|c| c.is_ascii_digit()) {
         self.advance();
       }
     }
@@ -253,25 +253,12 @@ impl Scanner {
 }
 
 trait CheckCharacter {
-  fn is_ascii_alphanumeric(&self) -> bool;
-  fn is_ascii_digit(&self) -> bool;
+  fn is_valid_for_lox_identifier(&self) -> bool;
 }
 
-impl CheckCharacter for Option<&char> {
-  fn is_ascii_alphanumeric(&self) -> bool {
-    if let Some(&c) = self {
-      c.is_ascii_alphanumeric()
-    } else {
-      false
-    }
-  }
-
-  fn is_ascii_digit(&self) -> bool {
-    if let Some(&c) = self {
-      c.is_ascii_digit()
-    } else {
-      false
-    }
+impl CheckCharacter for char {
+  fn is_valid_for_lox_identifier(&self) -> bool {
+    self.is_ascii_alphanumeric() || self.eq(&'_')
   }
 }
 

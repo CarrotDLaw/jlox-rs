@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::error::*;
+use crate::{error::*, lox_callable::*};
 
 #[derive(Debug, Clone)]
 pub struct Token {
@@ -46,12 +46,12 @@ impl Token {
   }
 
   pub fn is_type(&self, token_type: &TokenType) -> bool {
-    &self.token_type == token_type
+    self.token_type.eq(token_type)
   }
 
   pub fn is_types(&self, token_types: &[&TokenType]) -> bool {
     for token_type in token_types {
-      if &&self.token_type == token_type {
+      if self.token_type.eq(token_type) {
         return true;
       }
     }
@@ -81,6 +81,7 @@ pub enum Literal {
   Number(f64),
   String(String),
   Boolean(bool),
+  Function(Callable),
   Nil,
 }
 
@@ -90,7 +91,6 @@ impl Literal {
       return Ok(n);
     }
 
-    // Err(LoxError::TypeError)
     Err(LoxError::new_type_error())
   }
 }
@@ -101,6 +101,7 @@ impl fmt::Display for Literal {
       Literal::Number(n) => write!(f, "{n}"),
       Literal::String(s) => write!(f, "{s}"),
       Literal::Boolean(b) => write!(f, "{b}"),
+      Literal::Function(fun) => write!(f, "{fun:?}"),
       Literal::Nil => write!(f, "nil"),
     }
   }

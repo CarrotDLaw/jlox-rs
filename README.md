@@ -4,3 +4,4 @@
 - chapter 7 challenges (2) completed
 - chapter 8 challenges not completed
 - chapter 9 challenges completed
+- chapter 10 tests not passed, challenges not completed
