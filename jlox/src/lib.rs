@@ -1,8 +1,9 @@
-pub mod ast_printer;
+// pub mod ast_printer;
 pub mod environment;
 pub mod error;
 pub mod expr;
 pub mod interpreter;
+pub mod lox;
 pub mod lox_callable;
 pub mod lox_function;
 pub mod lox_native_function;

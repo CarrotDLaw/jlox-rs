@@ -64,6 +64,8 @@ fn define_ast(
   let mut file = File::create(path)?;
   let mut tree_types = Vec::new();
 
+  writeln!(file, "use std::hash::Hash;")?;
+  writeln!(file, "use std::hash::Hasher;")?;
   writeln!(file, "use std::rc::Rc;")?;
   writeln!(file)?;
   for import in imports {
@@ -81,12 +83,12 @@ fn define_ast(
         format!("{field_name}: {field_type}")
       })
       .collect::<Vec<String>>();
-    tree_types.push(TreeType { class_name, fields });
+    tree_types.push(TreeType { class_name, fields })
   }
 
   writeln!(file)?;
   writeln!(file, "pub enum {base_name} {{")?;
-  for tree_type in &tree_types {
+  for tree_type in tree_types.iter() {
     writeln!(file, "  {0}(Rc<{0}{1}>),", tree_type.class_name, base_name)?;
   }
   writeln!(file, "}}")?;
@@ -95,15 +97,15 @@ fn define_ast(
   writeln!(file, "impl {base_name} {{")?;
   writeln!(
     file,
-    "  pub fn accept<T>(&self, {}_visitor: &dyn {}Visitor<T>) -> Result<T, LoxError> {{",
+    "  pub fn accept<T>(&self, wrapper: &Rc<{0}>, {1}_visitor: &dyn {0}Visitor<T>) -> Result<T, LoxError> {{",
+    base_name,
     base_name.to_lowercase(),
-    base_name
   )?;
   writeln!(file, "    match self {{")?;
-  for tree_type in &tree_types {
+  for tree_type in tree_types.iter() {
     writeln!(
       file,
-      "      {0}::{1}({2}) => {2}_visitor.visit_{3}_{2}({2}),",
+      "      {0}::{1}({2}) => {2}_visitor.visit_{3}_{2}(wrapper, {2}),",
       base_name,
       tree_type.class_name,
       base_name.to_lowercase(),
@@ -114,10 +116,46 @@ fn define_ast(
   writeln!(file, "  }}")?;
   writeln!(file, "}}")?;
 
-  for tree_type in &tree_types {
+  writeln!(file)?;
+  writeln!(file, "impl PartialEq for {base_name} {{")?;
+  writeln!(file, "  fn eq(&self, other: &{base_name}) -> bool {{")?;
+  writeln!(file, "    match (self, other) {{")?;
+  for tree_type in tree_types.iter() {
+    writeln!(
+      file,
+      "     ({0}::{1}(l0), {0}::{1}(r0)) => Rc::ptr_eq(l0, r0),",
+      base_name, tree_type.class_name
+    )?;
+  }
+  writeln!(file, "      _ => false,")?;
+  writeln!(file, "    }}")?;
+  writeln!(file, "  }}")?;
+  writeln!(file, "}}")?;
+
+  writeln!(file)?;
+  writeln!(file, "impl Eq for {base_name} {{}}")?;
+
+  writeln!(file)?;
+  writeln!(file, "impl Hash for {base_name} {{")?;
+  writeln!(file, "  fn hash<H: Hasher>(&self, state: &mut H) {{")?;
+  writeln!(file, "    match self {{")?;
+  for tree_type in tree_types.iter() {
+    writeln!(
+      file,
+      "       {0}::{1}({2}) => state.write_usize(Rc::as_ptr({2}) as usize),",
+      base_name,
+      tree_type.class_name,
+      base_name.chars().next().unwrap().to_lowercase()
+    )?;
+  }
+  writeln!(file, "    }}")?;
+  writeln!(file, "  }}")?;
+  writeln!(file, "}}")?;
+
+  for tree_type in tree_types.iter() {
     writeln!(file)?;
     writeln!(file, "pub struct {}{} {{", tree_type.class_name, base_name)?;
-    for field in &tree_type.fields {
+    for field in tree_type.fields.iter() {
       writeln!(file, "  pub {field},")?;
     }
     writeln!(file, "}}")?;
@@ -125,14 +163,14 @@ fn define_ast(
 
   writeln!(file)?;
   writeln!(file, "pub trait {base_name}Visitor<T> {{")?;
-  for tree_type in &tree_types {
+  for tree_type in tree_types.iter() {
     writeln!(
       file,
-      "  fn visit_{0}_{1}(&self, {1}: &{2}{3}) -> Result<T, LoxError>;",
+      "  fn visit_{0}_{1}(&self, wrapper: &Rc<{2}>, {1}: &{3}{2}) -> Result<T, LoxError>;",
       tree_type.class_name.to_lowercase(),
       base_name.to_lowercase(),
+      base_name,
       tree_type.class_name,
-      base_name
     )?;
   }
   writeln!(file, "}}")?;

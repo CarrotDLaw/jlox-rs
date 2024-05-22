@@ -171,7 +171,8 @@ impl<'a> Parser<'a> {
     }
 
     body = Stmt::While(
-      WhileStmt {condition: condition.map_or_else(
+      WhileStmt {
+        condition: condition.map_or_else(
           || {
             Expr::Literal(
               LiteralExpr {
