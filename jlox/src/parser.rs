@@ -168,22 +168,22 @@ impl<'a> Parser<'a> {
           .into(),
         }
         .into(),
-      );
+      )
     }
 
     body = Stmt::While(
-      WhileStmt {condition: condition.map_or_else(
-          || {
-            Expr::Literal(
-              LiteralExpr {
-                value: Some(Literal::Boolean(true)),
-              }
-              .into(),
-            )
-            .into()
-          },
-          |c| c.into(),
-        ),
+      WhileStmt {
+        condition: if let Some(c) = condition {
+          c.into()
+        } else {
+          Expr::Literal(
+            LiteralExpr {
+              value: Some(Literal::Boolean(true)),
+            }
+            .into(),
+          )
+          .into()
+        },
         body: body.into(),
       }
       .into(),
@@ -390,7 +390,7 @@ impl<'a> Parser<'a> {
           right: self.and()?.into(),
         }
         .into(),
-      );
+      )
     }
 
     Ok(expr)
@@ -407,7 +407,7 @@ impl<'a> Parser<'a> {
           right: self.equality()?.into(),
         }
         .into(),
-      );
+      )
     }
 
     Ok(expr)

@@ -48,7 +48,7 @@ impl LoxError {
   pub fn new_parse_failure() -> LoxError {
     LoxError(LoxErrorType::Parse {
       token: Token::new_eof(0),
-      message: String::new(),
+      message: "".to_string(),
     })
   }
 
@@ -106,7 +106,7 @@ impl LoxError {
   fn report(&self) {
     match self {
       LoxError(LoxErrorType::General { line, message }) => {
-        eprintln!("[line {line}] Error: {message}");
+        eprintln!("[line {line}] Error: {message}")
       }
       LoxError(LoxErrorType::Parse { token, message }) => {
         let line = token.get_line();
