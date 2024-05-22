@@ -1,5 +1,6 @@
 use std::hash::Hash;
 use std::hash::Hasher;
+use std::mem::discriminant;
 use std::rc::Rc;
 
 use crate::error::*;
@@ -37,15 +38,15 @@ impl Stmt {
 impl PartialEq for Stmt {
   fn eq(&self, other: &Stmt) -> bool {
     match (self, other) {
-      (Stmt::Block(l0), Stmt::Block(r0)) => Rc::ptr_eq(l0, r0),
-      (Stmt::Break(l0), Stmt::Break(r0)) => Rc::ptr_eq(l0, r0),
-      (Stmt::Expression(l0), Stmt::Expression(r0)) => Rc::ptr_eq(l0, r0),
-      (Stmt::Function(l0), Stmt::Function(r0)) => Rc::ptr_eq(l0, r0),
-      (Stmt::If(l0), Stmt::If(r0)) => Rc::ptr_eq(l0, r0),
-      (Stmt::Print(l0), Stmt::Print(r0)) => Rc::ptr_eq(l0, r0),
-      (Stmt::Return(l0), Stmt::Return(r0)) => Rc::ptr_eq(l0, r0),
-      (Stmt::Var(l0), Stmt::Var(r0)) => Rc::ptr_eq(l0, r0),
-      (Stmt::While(l0), Stmt::While(r0)) => Rc::ptr_eq(l0, r0),
+     (Stmt::Block(l0), Stmt::Block(r0)) => Rc::ptr_eq(l0, r0),
+     (Stmt::Break(l0), Stmt::Break(r0)) => Rc::ptr_eq(l0, r0),
+     (Stmt::Expression(l0), Stmt::Expression(r0)) => Rc::ptr_eq(l0, r0),
+     (Stmt::Function(l0), Stmt::Function(r0)) => Rc::ptr_eq(l0, r0),
+     (Stmt::If(l0), Stmt::If(r0)) => Rc::ptr_eq(l0, r0),
+     (Stmt::Print(l0), Stmt::Print(r0)) => Rc::ptr_eq(l0, r0),
+     (Stmt::Return(l0), Stmt::Return(r0)) => Rc::ptr_eq(l0, r0),
+     (Stmt::Var(l0), Stmt::Var(r0)) => Rc::ptr_eq(l0, r0),
+     (Stmt::While(l0), Stmt::While(r0)) => Rc::ptr_eq(l0, r0),
       _ => false,
     }
   }
@@ -55,17 +56,7 @@ impl Eq for Stmt {}
 
 impl Hash for Stmt {
   fn hash<H: Hasher>(&self, state: &mut H) {
-    match self {
-      Stmt::Block(s) => state.write_usize(Rc::as_ptr(s) as usize),
-      Stmt::Break(s) => state.write_usize(Rc::as_ptr(s) as usize),
-      Stmt::Expression(s) => state.write_usize(Rc::as_ptr(s) as usize),
-      Stmt::Function(s) => state.write_usize(Rc::as_ptr(s) as usize),
-      Stmt::If(s) => state.write_usize(Rc::as_ptr(s) as usize),
-      Stmt::Print(s) => state.write_usize(Rc::as_ptr(s) as usize),
-      Stmt::Return(s) => state.write_usize(Rc::as_ptr(s) as usize),
-      Stmt::Var(s) => state.write_usize(Rc::as_ptr(s) as usize),
-      Stmt::While(s) => state.write_usize(Rc::as_ptr(s) as usize),
-    }
+    discriminant(self).hash(state);
   }
 }
 

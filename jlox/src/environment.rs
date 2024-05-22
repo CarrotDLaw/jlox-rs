@@ -73,33 +73,7 @@ impl Environment {
       );
     }
 
-    self
-      .enclosing
-      .as_ref()
-      .ok_or_else(|| LoxError::system_error("INTERNAL ERROR."))?
-      .borrow()
-      .get_at(distance - 1, name)
-  }
-
-  pub fn assign_at(
-    &mut self,
-    distance: usize,
-    name: &Token,
-    value: &Literal,
-  ) -> Result<(), LoxError> {
-    if distance.eq(&0) {
-      self
-        .values
-        .insert(name.get_lexeme().to_string(), value.clone());
-      return Ok(());
-    }
-
-    self
-      .enclosing
-      .as_ref()
-      .ok_or_else(|| LoxError::system_error("INTERNAL ERROR."))?
-      .borrow_mut()
-      .assign_at(distance - 1, name, value)
+    self.get_at(distance - 1, name)
   }
 }
 

@@ -66,6 +66,7 @@ fn define_ast(
 
   writeln!(file, "use std::hash::Hash;")?;
   writeln!(file, "use std::hash::Hasher;")?;
+  writeln!(file, "use std::mem::discriminant;")?;
   writeln!(file, "use std::rc::Rc;")?;
   writeln!(file)?;
   for import in imports {
@@ -138,7 +139,7 @@ fn define_ast(
   for tree_type in &tree_types {
     writeln!(
       file,
-      "      ({0}::{1}(l0), {0}::{1}(r0)) => Rc::ptr_eq(l0, r0),",
+      "     ({0}::{1}(l0), {0}::{1}(r0)) => Rc::ptr_eq(l0, r0),",
       base_name, tree_type.class_name
     )?;
   }
@@ -151,35 +152,15 @@ fn define_ast(
   writeln!(file)?;
   writeln!(file, "impl Eq for {base_name} {{}}")?;
 
-  // impl Hash for Stmt {
+  // impl Hash for Expr {
   //   fn hash<H: Hasher>(&self, state: &mut H) {
-  //     match self {
-  //       Stmt::Block(s) => state.write_usize(Rc::as_ptr(s) as usize),
-  //       Stmt::Break(s) => state.write_usize(Rc::as_ptr(s) as usize),
-  //       Stmt::Expression(s) => state.write_usize(Rc::as_ptr(s) as usize),
-  //       Stmt::Function(s) => state.write_usize(Rc::as_ptr(s) as usize),
-  //       Stmt::If(s) => state.write_usize(Rc::as_ptr(s) as usize),
-  //       Stmt::Print(s) => state.write_usize(Rc::as_ptr(s) as usize),
-  //       Stmt::Return(s) => state.write_usize(Rc::as_ptr(s) as usize),
-  //       Stmt::Var(s) => state.write_usize(Rc::as_ptr(s) as usize),
-  //       Stmt::While(s) => state.write_usize(Rc::as_ptr(s) as usize),
-  //     }
+  //     discriminant(self).hash(state);
   //   }
   // }
   writeln!(file)?;
   writeln!(file, "impl Hash for {base_name} {{")?;
   writeln!(file, "  fn hash<H: Hasher>(&self, state: &mut H) {{")?;
-  writeln!(file, "    match self {{")?;
-  for tree_type in &tree_types {
-    writeln!(
-      file,
-      "      {0}::{1}({2}) => state.write_usize(Rc::as_ptr({2}) as usize),",
-      base_name,
-      tree_type.class_name,
-      base_name.chars().next().unwrap().to_lowercase()
-    )?;
-  }
-  writeln!(file, "    }}")?;
+  writeln!(file, "    discriminant(self).hash(state);")?;
   writeln!(file, "  }}")?;
   writeln!(file, "}}")?;
 

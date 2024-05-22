@@ -96,7 +96,6 @@ impl<'a> Parser<'a> {
     }
 
     if self.is_match(&[&TokenType::Break]) {
-      
       return self.break_statement();
     }
 
@@ -111,7 +110,7 @@ impl<'a> Parser<'a> {
     self.consume(&TokenType::Semicolon, "Expect ';' after 'break'.")?;
     return Ok(Stmt::Break(
       BreakStmt {
-        token: self.previous().clone(),
+        token: self.peek().clone(),
       }
       .into(),
     ));
