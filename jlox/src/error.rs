@@ -58,22 +58,6 @@ impl LoxError {
     })
   }
 
-  pub fn is_return(&self) -> bool {
-    if matches!(self.0, LoxErrorType::Return { .. }) {
-      return true;
-    }
-
-    false
-  }
-
-  pub fn get_return_value(&self) -> Result<Literal, LoxError> {
-    if let LoxError(LoxErrorType::Return { value }) = self {
-      return Ok(value.clone());
-    }
-
-    Err(self.clone())
-  }
-
   pub fn runtime_error(token: &Token, message: &str) -> LoxError {
     let err = LoxError(LoxErrorType::Runtime {
       token: token.clone(),
@@ -81,14 +65,6 @@ impl LoxError {
     });
     err.report();
     err
-  }
-
-  pub fn is_runtime_error(&self) -> bool {
-    if matches!(self.0, LoxErrorType::Runtime { .. }) {
-      return true;
-    }
-
-    false
   }
 
   pub fn system_error(message: &str) -> LoxError {
@@ -101,6 +77,30 @@ impl LoxError {
 
   pub fn new_type_error() -> LoxError {
     LoxError(LoxErrorType::Type)
+  }
+
+  pub fn is_return(&self) -> bool {
+    if matches!(self.0, LoxErrorType::Return { .. }) {
+      return true;
+    }
+
+    false
+  }
+
+  pub fn is_runtime_error(&self) -> bool {
+    if matches!(self.0, LoxErrorType::Runtime { .. }) {
+      return true;
+    }
+
+    false
+  }
+
+  pub fn get_return_value(&self) -> Result<Literal, LoxError> {
+    if let LoxError(LoxErrorType::Return { value }) = self {
+      return Ok(value.clone());
+    }
+
+    Err(self.clone())
   }
 
   fn report(&self) {
@@ -124,9 +124,7 @@ impl LoxError {
         eprintln!("{message}");
         eprintln!("[line {line}]");
       }
-      LoxError(LoxErrorType::System { message }) => {
-        eprintln!("{message}");
-      }
+      LoxError(LoxErrorType::System { message }) => eprintln!("{message}"),
       _ => (),
     }
   }

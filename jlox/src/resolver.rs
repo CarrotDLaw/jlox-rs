@@ -23,12 +23,12 @@ impl Resolver {
     Ok(())
   }
 
-  fn resolve_expr(&self, expr: &Rc<Expr>) -> Result<(), LoxError> {
-    expr.accept(&expr.clone(), self)
+  fn resolve_expr(&self, expr: &Expr) -> Result<(), LoxError> {
+    expr.accept(self)
   }
 
-  fn resolve_stmt(&self, stmt: &Rc<Stmt>) -> Result<(), LoxError> {
-    stmt.accept(&stmt.clone(), self)
+  fn resolve_stmt(&self, stmt: &Stmt) -> Result<(), LoxError> {
+    stmt.accept(self)
   }
 
   fn begin_scope(&self) {
@@ -51,70 +51,46 @@ impl Resolver {
     }
   }
 
-  fn resolve_function(&self, function: &FunctionStmt) -> Result<(), LoxError> {
-    self.begin_scope();
-
-    for param in &function.params {
-      self.declare(param);
-      self.define(param);
-    }
-
-    self.resolve(&function.body.as_slice().into())?;
-    self.end_scope();
-    Ok(())
-  }
-
-  fn resolve_local(&self, expr: &Rc<Expr>, name: &Token) {
+  fn resolve_local(&self, expr: &Expr, name: &Token) {
     for (scope, map) in self.scopes.borrow().iter().rev().enumerate() {
       if map.borrow().contains_key(name.get_lexeme()) {
-        self.interpreter.resolve(expr, scope);
+        // self.interpreter.resolve(expr, scope);
+        return;
       }
     }
   }
 }
 
 impl ExprVisitor<()> for Resolver {
-  fn visit_assign_expr(&self, wrapper: &Rc<Expr>, expr: &AssignExpr) -> Result<(), LoxError> {
-    self.resolve_expr(&expr.value)?;
-    self.resolve_local(wrapper, &expr.name);
-    Ok(())
+  fn visit_assign_expr(&self, expr: &AssignExpr) -> Result<(), LoxError> {
+    todo!()
   }
 
-  fn visit_binary_expr(&self, _wrapper: &Rc<Expr>, expr: &BinaryExpr) -> Result<(), LoxError> {
-    self.resolve_expr(&expr.left)?;
-    self.resolve_expr(&expr.right)?;
-    Ok(())
+  fn visit_binary_expr(&self, expr: &BinaryExpr) -> Result<(), LoxError> {
+    todo!()
   }
 
-  fn visit_call_expr(&self, _wrapper: &Rc<Expr>, expr: &CallExpr) -> Result<(), LoxError> {
-    self.resolve_expr(&expr.callee)?;
-
-    for argument in expr.arguments.iter() {
-      self.resolve_expr(argument)?;
-    }
-
-    Ok(())
+  fn visit_call_expr(&self, expr: &CallExpr) -> Result<(), LoxError> {
+    todo!()
   }
 
-  fn visit_grouping_expr(&self, _wrapper: &Rc<Expr>, expr: &GroupingExpr) -> Result<(), LoxError> {
-    self.resolve_expr(&expr.expression)
+  fn visit_grouping_expr(&self, expr: &GroupingExpr) -> Result<(), LoxError> {
+    todo!()
   }
 
-  fn visit_literal_expr(&self, _wrapper: &Rc<Expr>, _expr: &LiteralExpr) -> Result<(), LoxError> {
-    Ok(())
+  fn visit_literal_expr(&self, expr: &LiteralExpr) -> Result<(), LoxError> {
+    todo!()
   }
 
-  fn visit_logical_expr(&self, _wrapper: &Rc<Expr>, expr: &LogicalExpr) -> Result<(), LoxError> {
-    self.resolve_expr(&expr.left)?;
-    self.resolve_expr(&expr.right)?;
-    Ok(())
+  fn visit_logical_expr(&self, expr: &LogicalExpr) -> Result<(), LoxError> {
+    todo!()
   }
 
-  fn visit_unary_expr(&self, _wrapper: &Rc<Expr>, expr: &UnaryExpr) -> Result<(), LoxError> {
-    self.resolve_expr(&expr.right)
+  fn visit_unary_expr(&self, expr: &UnaryExpr) -> Result<(), LoxError> {
+    todo!()
   }
 
-  fn visit_variable_expr(&self, wrapper: &Rc<Expr>, expr: &VariableExpr) -> Result<(), LoxError> {
+  fn visit_variable_expr(&self, expr: &VariableExpr) -> Result<(), LoxError> {
     if !self.scopes.borrow().is_empty()
       && self
         .scopes
@@ -131,76 +107,53 @@ impl ExprVisitor<()> for Resolver {
       ));
     }
 
-    self.resolve_local(wrapper, &expr.name);
+    // self.resolve_local(expr, &expr.name);
     Ok(())
   }
 }
 
 impl StmtVisitor<()> for Resolver {
-  fn visit_block_stmt(&self, _wrapper: &Rc<Stmt>, stmt: &BlockStmt) -> Result<(), LoxError> {
+  fn visit_block_stmt(&self, stmt: &BlockStmt) -> Result<(), LoxError> {
     self.begin_scope();
     self.resolve(&stmt.statements.as_slice().into())?;
     self.end_scope();
     Ok(())
   }
 
-  fn visit_break_stmt(&self, _wrapper: &Rc<Stmt>, _stmt: &BreakStmt) -> Result<(), LoxError> {
-    Ok(())
+  fn visit_break_stmt(&self, stmt: &BreakStmt) -> Result<(), LoxError> {
+    todo!()
   }
 
-  fn visit_expression_stmt(
-    &self,
-    _wrapper: &Rc<Stmt>,
-    stmt: &ExpressionStmt,
-  ) -> Result<(), LoxError> {
-    self.resolve_expr(&stmt.expression)
+  fn visit_expression_stmt(&self, stmt: &ExpressionStmt) -> Result<(), LoxError> {
+    todo!()
   }
 
-  fn visit_function_stmt(&self, _wrapper: &Rc<Stmt>, stmt: &FunctionStmt) -> Result<(), LoxError> {
+  fn visit_function_stmt(&self, stmt: &FunctionStmt) -> Result<(), LoxError> {
+    todo!()
+  }
+
+  fn visit_if_stmt(&self, stmt: &IfStmt) -> Result<(), LoxError> {
+    todo!()
+  }
+
+  fn visit_print_stmt(&self, stmt: &PrintStmt) -> Result<(), LoxError> {
+    todo!()
+  }
+
+  fn visit_return_stmt(&self, stmt: &ReturnStmt) -> Result<(), LoxError> {
+    todo!()
+  }
+
+  fn visit_var_stmt(&self, stmt: &VarStmt) -> Result<(), LoxError> {
     self.declare(&stmt.name);
-    self.define(&stmt.name);
-
-    self.resolve_function(stmt)?;
-    Ok(())
-  }
-
-  fn visit_if_stmt(&self, _wrapper: &Rc<Stmt>, stmt: &IfStmt) -> Result<(), LoxError> {
-    self.resolve_expr(&stmt.condition)?;
-    self.resolve_stmt(&stmt.then_branch)?;
-
-    if let Some(b) = &stmt.else_branch {
-      self.resolve_stmt(b)?;
-    }
-
-    Ok(())
-  }
-
-  fn visit_print_stmt(&self, _wrapper: &Rc<Stmt>, stmt: &PrintStmt) -> Result<(), LoxError> {
-    self.resolve_expr(&stmt.expression)
-  }
-
-  fn visit_return_stmt(&self, _wrapper: &Rc<Stmt>, stmt: &ReturnStmt) -> Result<(), LoxError> {
-    if let Some(v) = &stmt.value {
-      self.resolve_expr(v)?;
-    }
-
-    Ok(())
-  }
-
-  fn visit_var_stmt(&self, _wrapper: &Rc<Stmt>, stmt: &VarStmt) -> Result<(), LoxError> {
-    self.declare(&stmt.name);
-
     if let Some(i) = &stmt.initialiser {
       self.resolve_expr(i)?;
     }
-
     self.define(&stmt.name);
     Ok(())
   }
 
-  fn visit_while_stmt(&self, _wrapper: &Rc<Stmt>, stmt: &WhileStmt) -> Result<(), LoxError> {
-    self.resolve_expr(&stmt.condition)?;
-    self.resolve_stmt(&stmt.body)?;
-    Ok(())
+  fn visit_while_stmt(&self, stmt: &WhileStmt) -> Result<(), LoxError> {
+    todo!()
   }
 }

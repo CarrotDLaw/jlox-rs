@@ -61,20 +61,6 @@ impl Environment {
   pub fn define(&mut self, name: &str, value: Literal) {
     self.values.insert(name.to_string(), value);
   }
-
-  pub fn get_at(&self, distance: usize, name: &str) -> Result<Literal, LoxError> {
-    if distance.eq(&0) {
-      return Ok(
-        self
-          .values
-          .get(name)
-          .ok_or_else(|| LoxError::system_error("INTERNAL ERROR."))?
-          .clone(),
-      );
-    }
-
-    self.get_at(distance - 1, name)
-  }
 }
 
 #[cfg(test)]
