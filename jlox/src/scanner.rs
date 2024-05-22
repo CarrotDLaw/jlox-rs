@@ -61,7 +61,7 @@ impl Scanner {
         } else {
           TokenType::Assign
         };
-        self.add_token(token)
+        self.add_token(token);
       }
       '<' => {
         let token = if self.is_match('=') {
@@ -69,7 +69,7 @@ impl Scanner {
         } else {
           TokenType::Less
         };
-        self.add_token(token)
+        self.add_token(token);
       }
       '>' => {
         let token = if self.is_match('=') {
@@ -77,7 +77,7 @@ impl Scanner {
         } else {
           TokenType::Greater
         };
-        self.add_token(token)
+        self.add_token(token);
       }
       '/' => {
         if self.is_match('/') {
@@ -91,7 +91,7 @@ impl Scanner {
         } else if self.is_match('*') {
           self.comment()?;
         } else {
-          self.add_token(TokenType::Slash)
+          self.add_token(TokenType::Slash);
         }
       }
       ' ' | '\r' | '\t' => (),
@@ -106,27 +106,31 @@ impl Scanner {
   }
 
   fn identifier(&mut self) {
-    while self.peek().is_some_and(|c| c.is_valid_for_lox_identifier()) {
+    while self
+      .peek()
+      .is_some_and(CheckCharacter::is_valid_for_lox_identifier)
+    {
       self.advance();
     }
 
     self.add_token(
-      self.source[self.start..self.current]
-        .iter()
-        .collect::<String>()
+      self
+        .source
+        .get(self.start..self.current)
+        .map_or_else(String::new, |s| s.iter().collect())
         .match_lox_keyword(),
     );
   }
 
   fn number(&mut self) -> Result<(), LoxError> {
-    while self.peek().is_some_and(|c| c.is_ascii_digit()) {
+    while self.peek().is_some_and(char::is_ascii_digit) {
       self.advance();
     }
 
-    if self.peek() == Some(&'.') && self.peek_next().is_some_and(|c| c.is_ascii_digit()) {
+    if self.peek() == Some(&'.') && self.peek_next().is_some_and(char::is_ascii_digit) {
       self.advance();
 
-      while self.peek().is_some_and(|c| c.is_ascii_digit()) {
+      while self.peek().is_some_and(char::is_ascii_digit) {
         self.advance();
       }
     }
@@ -134,9 +138,10 @@ impl Scanner {
     self.add_token_and_literal(
       TokenType::Number,
       Some(Literal::Number(
-        self.source[self.start..self.current]
-          .iter()
-          .collect::<String>()
+        self
+          .source
+          .get(self.start..self.current)
+          .map_or_else(String::new, |s| s.iter().collect())
           .parse::<f64>()
           .map_err(|_| LoxError::general_error(self.line, "COULD NOT PARSE NUMBER."))?,
       )),
@@ -161,9 +166,10 @@ impl Scanner {
 
     self.advance();
 
-    let value = self.source[self.start + 1..self.current - 1]
-      .iter()
-      .collect::<String>();
+    let value = self
+      .source
+      .get(self.start + 1..self.current - 1)
+      .map_or_else(String::new, |s| s.iter().collect());
     self.add_token_and_literal(TokenType::String, Some(Literal::String(value)));
 
     Ok(())
@@ -173,7 +179,7 @@ impl Scanner {
     // consume the '*'
     self.advance();
 
-    let mut counter = 1;
+    let mut counter = 1_usize;
     loop {
       if counter == 0 {
         break;
@@ -243,12 +249,13 @@ impl Scanner {
   }
 
   fn add_token_and_literal(&mut self, token_type: TokenType, literal: Option<Literal>) {
-    let text = self.source[self.start..self.current]
-      .iter()
-      .collect::<String>();
+    let text = self
+      .source
+      .get(self.start..self.current)
+      .map_or_else(String::new, |s| s.iter().collect());
     self
       .tokens
-      .push(Token::new(token_type, &text, literal, self.line))
+      .push(Token::new(token_type, &text, literal, self.line));
   }
 }
 

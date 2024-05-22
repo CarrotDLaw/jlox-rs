@@ -32,7 +32,7 @@ impl Resolver {
   }
 
   fn begin_scope(&self) {
-    self.scopes.borrow_mut().push(RefCell::new(HashMap::new()))
+    self.scopes.borrow_mut().push(RefCell::new(HashMap::new()));
   }
 
   fn end_scope(&self) {

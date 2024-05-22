@@ -320,7 +320,7 @@ impl StmtVisitor<()> for Interpreter {
         break;
       }
 
-      body?
+      body?;
     }
 
     Ok(())
