@@ -25,7 +25,7 @@ impl fmt::Display for Callable {
 }
 
 impl PartialEq for Callable {
-  fn eq(&self, other: &Self) -> bool {
+  fn eq(&self, other: &Callable) -> bool {
     Rc::ptr_eq(&self.fun, &other.fun)
   }
 }

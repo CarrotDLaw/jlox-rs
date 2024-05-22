@@ -64,6 +64,9 @@ fn define_ast(
   let mut file = File::create(path)?;
   let mut tree_types = Vec::new();
 
+  writeln!(file, "use std::hash::Hash;")?;
+  writeln!(file, "use std::hash::Hasher;")?;
+  writeln!(file, "use std::mem::discriminant;")?;
   writeln!(file, "use std::rc::Rc;")?;
   writeln!(file)?;
   for import in imports {
@@ -95,15 +98,15 @@ fn define_ast(
   writeln!(file, "impl {base_name} {{")?;
   writeln!(
     file,
-    "  pub fn accept<T>(&self, {}_visitor: &dyn {}Visitor<T>) -> Result<T, LoxError> {{",
+    "  pub fn accept<T>(&self, wrapper: &Rc<{0}>, {1}_visitor: &dyn {0}Visitor<T>) -> Result<T, LoxError> {{",
+    base_name,
     base_name.to_lowercase(),
-    base_name
   )?;
   writeln!(file, "    match self {{")?;
   for tree_type in &tree_types {
     writeln!(
       file,
-      "      {0}::{1}({2}) => {2}_visitor.visit_{3}_{2}({2}),",
+      "      {0}::{1}({2}) => {2}_visitor.visit_{3}_{2}(wrapper, {2}),",
       base_name,
       tree_type.class_name,
       base_name.to_lowercase(),
@@ -114,6 +117,54 @@ fn define_ast(
   writeln!(file, "  }}")?;
   writeln!(file, "}}")?;
 
+  // impl PartialEq for Expr {
+  //   fn eq(&self, other: &Self) -> bool {
+  //     match (self, other) {
+  //       (Self::Assign(l0), Self::Assign(r0)) => Rc::ptr_eq(l0, r0),
+  //       (Self::Binary(l0), Self::Binary(r0)) => Rc::ptr_eq(l0, r0),
+  //       (Self::Call(l0), Self::Call(r0)) => Rc::ptr_eq(l0, r0),
+  //       (Self::Grouping(l0), Self::Grouping(r0)) => Rc::ptr_eq(l0, r0),
+  //       (Self::Literal(l0), Self::Literal(r0)) => Rc::ptr_eq(l0, r0),
+  //       (Self::Logical(l0), Self::Logical(r0)) => Rc::ptr_eq(l0, r0),
+  //       (Self::Unary(l0), Self::Unary(r0)) => Rc::ptr_eq(l0, r0),
+  //       (Self::Variable(l0), Self::Variable(r0)) => Rc::ptr_eq(l0, r0),
+  //       _ => false,
+  //     }
+  //   }
+  // }
+  writeln!(file)?;
+  writeln!(file, "impl PartialEq for {base_name} {{")?;
+  writeln!(file, "  fn eq(&self, other: &{base_name}) -> bool {{")?;
+  writeln!(file, "    match (self, other) {{")?;
+  for tree_type in &tree_types {
+    writeln!(
+      file,
+      "     ({0}::{1}(l0), {0}::{1}(r0)) => Rc::ptr_eq(l0, r0),",
+      base_name, tree_type.class_name
+    )?;
+  }
+  writeln!(file, "      _ => false,")?;
+  writeln!(file, "    }}")?;
+  writeln!(file, "  }}")?;
+  writeln!(file, "}}")?;
+
+  // impl Eq for Expr {}
+  writeln!(file)?;
+  writeln!(file, "impl Eq for {base_name} {{}}")?;
+
+  // impl Hash for Expr {
+  //   fn hash<H: Hasher>(&self, state: &mut H) {
+  //     discriminant(self).hash(state);
+  //   }
+  // }
+  writeln!(file)?;
+  writeln!(file, "impl Hash for {base_name} {{")?;
+  writeln!(file, "  fn hash<H: Hasher>(&self, state: &mut H) {{")?;
+  writeln!(file, "    discriminant(self).hash(state);")?;
+  writeln!(file, "  }}")?;
+  writeln!(file, "}}")?;
+
+  writeln!(file)?;
   for tree_type in &tree_types {
     writeln!(file)?;
     writeln!(file, "pub struct {}{} {{", tree_type.class_name, base_name)?;
@@ -128,7 +179,7 @@ fn define_ast(
   for tree_type in &tree_types {
     writeln!(
       file,
-      "  fn visit_{0}_{1}(&self, {1}: &{2}{3}) -> Result<T, LoxError>;",
+      "  fn visit_{0}_{1}(&self, wrapper: &Rc<{3}>, {1}: &{2}{3}) -> Result<T, LoxError>;",
       tree_type.class_name.to_lowercase(),
       base_name.to_lowercase(),
       tree_type.class_name,
