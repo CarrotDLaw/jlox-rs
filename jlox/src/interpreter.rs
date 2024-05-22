@@ -30,7 +30,7 @@ impl Interpreter {
     }
   }
 
-  pub fn interpret(&self, statements: &Rc<[Rc<Stmt>]>) -> Result<(), LoxError> {
+  pub fn interpret(&self, statements: &Rc<&[Rc<Stmt>]>) -> Result<(), LoxError> {
     for statement in statements.iter() {
       self.execute(statement)?;
     }
@@ -72,7 +72,7 @@ impl Interpreter {
 
   pub fn execute_block(
     &self,
-    statements: &Rc<[Rc<Stmt>]>,
+    statements: &Rc<&[Rc<Stmt>]>,
     environment: Environment,
   ) -> Result<(), LoxError> {
     let previous = self.environment.replace(RefCell::new(environment).into());
@@ -105,13 +105,18 @@ impl Interpreter {
 }
 
 impl ExprVisitor<Literal> for Interpreter {
-  fn visit_assign_expr(&self, _wrapper: &Rc<Expr>, expr: &AssignExpr) -> Result<Literal, LoxError> {
+  fn visit_assign_expr(&self, wrapper: &Rc<Expr>, expr: &AssignExpr) -> Result<Literal, LoxError> {
     let value = self.evaluate(&expr.value)?;
-    // self
-    //   .environment
-    //   .borrow()
-    //   .borrow_mut()
-    //   .assign(&expr.name, &value)?;
+
+    if let Some(&distance) = self.locals.borrow().get(wrapper) {
+      self
+        .environment
+        .borrow()
+        .borrow_mut()
+        .assign_at(distance, &expr.name, &value)?;
+    }
+
+    self.globals.borrow_mut().assign(&expr.name, &value)?;
     Ok(value)
   }
 
@@ -338,17 +343,17 @@ impl StmtVisitor<()> for Interpreter {
   }
 
   fn visit_var_stmt(&self, _wrapper: &Rc<Stmt>, stmt: &VarStmt) -> Result<(), LoxError> {
-    let value = if let Some(i) = &stmt.initialiser {
-      self.evaluate(i)?
-    } else {
-      Literal::Nil
-    };
+    let value = stmt
+      .initialiser
+      .as_ref()
+      .map_or_else(|| Ok(Literal::Nil), |i| self.evaluate(i))?;
 
     self
       .environment
       .borrow()
       .borrow_mut()
       .define(stmt.name.get_lexeme(), value);
+
     Ok(())
   }
 
@@ -385,7 +390,7 @@ mod test {
       &statements
         .into_iter()
         .map(Rc::new)
-        .collect::<Vec<Rc<Stmt>>>()
+        .collect::<Vec<Rc<Stmt>>>().as_slice()
         .into(),
     )?;
 
@@ -405,7 +410,7 @@ mod test {
       &statements
         .into_iter()
         .map(Rc::new)
-        .collect::<Vec<Rc<Stmt>>>()
+        .collect::<Vec<Rc<Stmt>>>().as_slice()
         .into(),
     )?;
 

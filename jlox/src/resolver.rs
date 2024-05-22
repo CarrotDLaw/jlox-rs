@@ -5,6 +5,8 @@ use crate::{error::*, expr::*, interpreter::*, stmt::*, token::*};
 pub struct Resolver {
   interpreter: Interpreter,
   scopes: RefCell<Vec<RefCell<HashMap<String, bool>>>>,
+  current_function: RefCell<FunctionType>,
+  had_error: RefCell<bool>,
 }
 
 impl Resolver {
@@ -12,12 +14,18 @@ impl Resolver {
     Resolver {
       interpreter: interpreter.clone(),
       scopes: RefCell::new(Vec::new()),
+      current_function: RefCell::new(FunctionType::None),
+      had_error: RefCell::new(false),
     }
   }
 
-  fn resolve(&self, statements: &Rc<[Rc<Stmt>]>) -> Result<(), LoxError> {
+  pub fn resolve(&self, statements: &Rc<&[Rc<Stmt>]>) -> Result<(), LoxError> {
     for statement in statements.iter() {
       self.resolve_stmt(statement)?;
+    }
+
+    if *self.had_error.borrow() {
+      return Err(LoxError::system_error(""));
     }
 
     Ok(())
@@ -41,6 +49,11 @@ impl Resolver {
 
   fn declare(&self, name: &Token) {
     if let Some(s) = self.scopes.borrow().last() {
+      if s.borrow().contains_key(name.get_lexeme()) {
+        self.had_error.replace(true);
+        LoxError::runtime_error(name, "Already a variable with this name in this scope.");
+      }
+
       s.borrow_mut().insert(name.get_lexeme().to_string(), false);
     }
   }
@@ -51,7 +64,12 @@ impl Resolver {
     }
   }
 
-  fn resolve_function(&self, function: &FunctionStmt) -> Result<(), LoxError> {
+  fn resolve_function(
+    &self,
+    function: &FunctionStmt,
+    function_type: &FunctionType,
+  ) -> Result<(), LoxError> {
+    let enclosing_function = self.current_function.replace(function_type.clone());
     self.begin_scope();
 
     for param in &function.params {
@@ -61,6 +79,7 @@ impl Resolver {
 
     self.resolve(&function.body.as_slice().into())?;
     self.end_scope();
+    self.current_function.replace(enclosing_function);
     Ok(())
   }
 
@@ -160,7 +179,7 @@ impl StmtVisitor<()> for Resolver {
     self.declare(&stmt.name);
     self.define(&stmt.name);
 
-    self.resolve_function(stmt)?;
+    self.resolve_function(stmt, &FunctionType::Function)?;
     Ok(())
   }
 
@@ -180,6 +199,11 @@ impl StmtVisitor<()> for Resolver {
   }
 
   fn visit_return_stmt(&self, _wrapper: &Rc<Stmt>, stmt: &ReturnStmt) -> Result<(), LoxError> {
+    if self.current_function.borrow().is_type(&FunctionType::None) {
+      self.had_error.replace(true);
+      LoxError::runtime_error(&stmt.keyword, "Can't return from top-level code.");
+    }
+
     if let Some(v) = &stmt.value {
       self.resolve_expr(v)?;
     }
@@ -202,5 +226,17 @@ impl StmtVisitor<()> for Resolver {
     self.resolve_expr(&stmt.condition)?;
     self.resolve_stmt(&stmt.body)?;
     Ok(())
+  }
+}
+
+#[derive(Clone, PartialEq)]
+enum FunctionType {
+  Function,
+  None,
+}
+
+impl FunctionType {
+  fn is_type(&self, function_type: &FunctionType) -> bool {
+    self.eq(function_type)
   }
 }

@@ -5,7 +5,7 @@ use std::{
   rc::Rc,
 };
 
-use crate::{error::*, interpreter::*, parser::*, scanner::*, stmt::*};
+use crate::{error::*, interpreter::*, parser::*, resolver::Resolver, scanner::*, stmt::*};
 
 #[derive(Default)]
 pub struct Lox {
@@ -64,15 +64,18 @@ impl Lox {
     let mut scanner = Scanner::new(source);
     let tokens = scanner.scan_tokens()?;
     let mut parser = Parser::new(tokens);
-    let statements = parser.parse()?;
 
-    self.interpreter.interpret(
-      &statements
-        .into_iter()
-        .map(Rc::new)
-        .collect::<Vec<Rc<Stmt>>>()
-        .into(),
-    )?;
+    let statements = parser.parse()?;
+    let statements = statements
+      .into_iter()
+      .map(Rc::new)
+      .collect::<Vec<Rc<Stmt>>>();
+    let statements = Rc::new(statements.as_slice());
+
+    let resolver = Resolver::new(&self.interpreter);
+    resolver.resolve(&statements.clone())?;
+
+    self.interpreter.interpret(&statements.clone())?;
 
     Ok(())
   }
