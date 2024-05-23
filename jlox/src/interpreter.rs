@@ -1,8 +1,8 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
-  environment::*, error::*, expr::*, lox_callable::*, lox_function::*, lox_native_function::*,
-  stmt::*, token::*,
+  environment::*, error::*, expr::*, lox_callable::*, lox_class::LoxClass, lox_function::*,
+  lox_native_function::*, stmt::*, token::*,
 };
 
 #[derive(Default, Clone)]
@@ -198,7 +198,7 @@ impl ExprVisitor<Literal> for Interpreter {
     }
 
     if let Literal::Function(f) = callee {
-      if arguments.len() != f.fun.arity().into() {
+      if arguments.len().ne(&f.fun.arity().into()) {
         return Err(LoxError::runtime_error(
           &expr.bracket,
           &format!(
@@ -212,9 +212,36 @@ impl ExprVisitor<Literal> for Interpreter {
       return f.fun.call(self, &arguments);
     }
 
+    if let Literal::Class(c) = callee {
+      if arguments.len().ne(&c.arity().into()) {
+        return Err(LoxError::runtime_error(
+          &expr.bracket,
+          &format!(
+            "Expected {} arguments but got {}.",
+            c.arity(),
+            arguments.len()
+          ),
+        ));
+      }
+
+      return c.call(self, &arguments);
+    }
+
     Err(LoxError::runtime_error(
       &expr.bracket,
       "Can only call functions and classes.",
+    ))
+  }
+
+  fn visit_get_expr(&self, _wrapper: &Rc<Expr>, expr: &GetExpr) -> Result<Literal, LoxError> {
+    let object = self.evaluate(&expr.object)?;
+    if let Literal::Instance(i) = object {
+      return i.get(&expr.name);
+    }
+
+    Err(LoxError::runtime_error(
+      &expr.name,
+      "Only instances have properties.",
     ))
   }
 
@@ -256,6 +283,21 @@ impl ExprVisitor<Literal> for Interpreter {
     self.evaluate(&expr.right)
   }
 
+  fn visit_set_expr(&self, _wrapper: &Rc<Expr>, expr: &SetExpr) -> Result<Literal, LoxError> {
+    let object = self.evaluate(&expr.object)?;
+
+    if let Literal::Instance(i) = object {
+      let value = self.evaluate(&expr.value)?;
+      i.set(&expr.name, &value);
+      return Ok(value);
+    }
+
+    Err(LoxError::runtime_error(
+      &expr.name,
+      "Only instances have fields.",
+    ))
+  }
+
   fn visit_unary_expr(&self, _wrapper: &Rc<Expr>, expr: &UnaryExpr) -> Result<Literal, LoxError> {
     let right = self.evaluate(&expr.right)?;
 
@@ -287,6 +329,31 @@ impl StmtVisitor<()> for Interpreter {
 
   fn visit_break_stmt(&self, _wrapper: &Rc<Stmt>, _stmt: &BreakStmt) -> Result<(), LoxError> {
     Err(LoxError::new_break())
+  }
+
+  fn visit_class_stmt(&self, _wrapper: &Rc<Stmt>, stmt: &ClassStmt) -> Result<(), LoxError> {
+    self
+      .environment
+      .borrow()
+      .borrow_mut()
+      .define(stmt.name.get_lexeme(), Literal::Nil);
+
+    let mut methods = HashMap::new();
+    for method in stmt.methods.iter() {
+      if let Stmt::Function(f) = method.as_ref() {
+        let function = Literal::Function(Callable {
+          fun: Rc::new(LoxFunction::new(&self.environment.borrow(), f)),
+        });
+        methods.insert(f.name.get_lexeme().to_string(), function);
+      }
+    }
+
+    let class = Literal::Class(LoxClass::new(stmt.name.get_lexeme(), &methods).into());
+    self
+      .environment
+      .borrow()
+      .borrow_mut()
+      .assign(&stmt.name, &class)
   }
 
   fn visit_expression_stmt(

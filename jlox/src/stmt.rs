@@ -11,6 +11,7 @@ use crate::token::*;
 pub enum Stmt {
   Block(Rc<BlockStmt>),
   Break(Rc<BreakStmt>),
+  Class(Rc<ClassStmt>),
   Expression(Rc<ExpressionStmt>),
   Function(Rc<FunctionStmt>),
   If(Rc<IfStmt>),
@@ -25,6 +26,7 @@ impl Stmt {
     match self {
       Stmt::Block(stmt) => stmt_visitor.visit_block_stmt(wrapper, stmt),
       Stmt::Break(stmt) => stmt_visitor.visit_break_stmt(wrapper, stmt),
+      Stmt::Class(stmt) => stmt_visitor.visit_class_stmt(wrapper, stmt),
       Stmt::Expression(stmt) => stmt_visitor.visit_expression_stmt(wrapper, stmt),
       Stmt::Function(stmt) => stmt_visitor.visit_function_stmt(wrapper, stmt),
       Stmt::If(stmt) => stmt_visitor.visit_if_stmt(wrapper, stmt),
@@ -41,6 +43,7 @@ impl PartialEq for Stmt {
     match (self, other) {
       (Stmt::Block(l0), Stmt::Block(r0)) => Rc::ptr_eq(l0, r0),
       (Stmt::Break(l0), Stmt::Break(r0)) => Rc::ptr_eq(l0, r0),
+      (Stmt::Class(l0), Stmt::Class(r0)) => Rc::ptr_eq(l0, r0),
       (Stmt::Expression(l0), Stmt::Expression(r0)) => Rc::ptr_eq(l0, r0),
       (Stmt::Function(l0), Stmt::Function(r0)) => Rc::ptr_eq(l0, r0),
       (Stmt::If(l0), Stmt::If(r0)) => Rc::ptr_eq(l0, r0),
@@ -69,6 +72,12 @@ pub struct BlockStmt {
 #[derive(Debug)]
 pub struct BreakStmt {
   pub token: Token,
+}
+
+#[derive(Debug)]
+pub struct ClassStmt {
+  pub name: Token,
+  pub methods: Rc<Vec<Rc<Stmt>>>,
 }
 
 #[derive(Debug)]
@@ -116,6 +125,7 @@ pub struct WhileStmt {
 pub trait StmtVisitor<T> {
   fn visit_block_stmt(&self, wrapper: &Rc<Stmt>, stmt: &BlockStmt) -> Result<T, LoxError>;
   fn visit_break_stmt(&self, wrapper: &Rc<Stmt>, stmt: &BreakStmt) -> Result<T, LoxError>;
+  fn visit_class_stmt(&self, wrapper: &Rc<Stmt>, stmt: &ClassStmt) -> Result<T, LoxError>;
   fn visit_expression_stmt(&self, wrapper: &Rc<Stmt>, stmt: &ExpressionStmt) -> Result<T, LoxError>;
   fn visit_function_stmt(&self, wrapper: &Rc<Stmt>, stmt: &FunctionStmt) -> Result<T, LoxError>;
   fn visit_if_stmt(&self, wrapper: &Rc<Stmt>, stmt: &IfStmt) -> Result<T, LoxError>;

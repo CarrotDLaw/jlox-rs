@@ -12,7 +12,7 @@ struct TreeType {
 
 fn main() -> io::Result<()> {
   let args = args().collect::<Vec<String>>();
-  if args.len() != 2 {
+  if args.len().ne(&2) {
     eprintln!("Usage: generate_ast <output directory>");
     exit(64);
   }
@@ -26,9 +26,11 @@ fn main() -> io::Result<()> {
       "Assign   : Token name, Rc<Expr> value",
       "Binary   : Rc<Expr> left, Token operator, Rc<Expr> right",
       "Call     : Rc<Expr> callee, Token bracket, Rc<Vec<Rc<Expr>>> arguments",
+      "Get      : Rc<Expr> object, Token name",
       "Grouping : Rc<Expr> expression",
       "Literal  : Option<Literal> value",
       "Logical  : Rc<Expr> left, Token operator, Rc<Expr> right",
+      "Set      : Rc<Expr> object, Token name, Rc<Expr> value",
       "Unary    : Token operator, Rc<Expr> right",
       "Variable : Token name",
     ],
@@ -41,6 +43,7 @@ fn main() -> io::Result<()> {
     &[
       "Block      : Rc<Vec<Rc<Stmt>>> statements",
       "Break      : Token token",
+      "Class      : Token name, Rc<Vec<Rc<Stmt>>> methods",
       "Expression : Rc<Expr> expression",
       "Function   : Token name, Vec<Token> params, Rc<Vec<Rc<Stmt>>> body",
       "If         : Rc<Expr> condition, Rc<Stmt> then_branch, Option<Rc<Stmt>> else_branch",
@@ -140,17 +143,6 @@ fn define_ast(
   writeln!(file)?;
   writeln!(file, "impl Hash for {base_name} {{")?;
   writeln!(file, "  fn hash<H: Hasher>(&self, state: &mut H) {{")?;
-  // writeln!(file, "    match self {{")?;
-  // for tree_type in &tree_types {
-  //   writeln!(
-  //     file,
-  //     "       {0}::{1}({2}) => state.write_usize(Rc::as_ptr({2}) as usize),",
-  //     base_name,
-  //     tree_type.class_name,
-  //     base_name.chars().next().unwrap().to_lowercase()
-  //   )?;
-  // }
-  // writeln!(file, "    }}")?;
   writeln!(file, "    discriminant(self).hash(state);")?;
   writeln!(file, "  }}")?;
   writeln!(file, "}}")?;

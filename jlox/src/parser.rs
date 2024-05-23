@@ -45,7 +45,9 @@ impl<'a> Parser<'a> {
   }
 
   fn declaration(&mut self) -> Result<Stmt, LoxError> {
-    let res = if self.is_match(&[&TokenType::Fun]) {
+    let res = if self.is_match(&[&TokenType::Class]) {
+      self.class_declaration()
+    } else if self.is_match(&[&TokenType::Fun]) {
       self.function("function")
     } else if self.is_match(&[&TokenType::Var]) {
       self.var_declaration()
@@ -58,6 +60,26 @@ impl<'a> Parser<'a> {
     }
 
     res
+  }
+
+  fn class_declaration(&mut self) -> Result<Stmt, LoxError> {
+    let name = self
+      .consume(&TokenType::Identifier, "Expect class name.")?
+      .clone();
+    self.consume(&TokenType::LeftBrace, "Expect '{' before class body.")?;
+
+    let mut methods = Vec::new();
+    while !self.check(&TokenType::RightBrace) && !self.is_at_end() {
+      methods.push(self.function("method")?);
+    }
+    let methods = methods
+      .into_iter()
+      .map(Rc::new)
+      .collect::<Vec<Rc<Stmt>>>()
+      .into();
+
+    self.consume(&TokenType::RightBrace, "Expect '}' after class body.")?;
+    Ok(Stmt::Class(ClassStmt { name, methods }.into()))
   }
 
   fn statement(&mut self) -> Result<Stmt, LoxError> {
@@ -358,24 +380,37 @@ impl<'a> Parser<'a> {
   fn assignment(&mut self) -> Result<Expr, LoxError> {
     let expr = self.or()?;
 
-    if self.is_match(&[&TokenType::Assign]) {
-      let equals = self.previous().clone();
-      let value = self.assignment()?;
-
-      if let Expr::Variable(v) = expr {
-        return Ok(Expr::Assign(
-          AssignExpr {
-            name: v.name.clone(),
-            value: value.into(),
-          }
-          .into(),
-        ));
-      }
-
-      self.had_error = true;
-      LoxError::parse_error(&equals, "Invalid assignment target.");
+    if !self.is_match(&[&TokenType::Assign]) {
+      return Ok(expr);
     }
 
+    let equals = self.previous().clone();
+    let value = self.assignment()?;
+
+    if let Expr::Variable(v) = expr {
+      return Ok(Expr::Assign(
+        AssignExpr {
+          name: v.name.clone(),
+          value: value.into(),
+        }
+        .into(),
+      ));
+    }
+
+    if let Expr::Get(g) = expr {
+      // let get = g;
+      return Ok(Expr::Set(
+        SetExpr {
+          object: g.object.clone(),
+          name: g.name.clone(),
+          value: value.into(),
+        }
+        .into(),
+      ));
+    }
+
+    self.had_error = true;
+    LoxError::parse_error(&equals, "Invalid assignment target.");
     Ok(expr)
   }
 
@@ -539,6 +574,15 @@ impl<'a> Parser<'a> {
     loop {
       if self.is_match(&[&TokenType::LeftBracket]) {
         expr = self.finish_call(expr.into())?;
+      } else if self.is_match(&[&TokenType::Class]) {
+        let name = self.consume(&TokenType::Identifier, "Expect property name after '.'.")?;
+        expr = Expr::Get(
+          GetExpr {
+            object: expr.into(),
+            name: name.clone(),
+          }
+          .into(),
+        );
       } else {
         break;
       }

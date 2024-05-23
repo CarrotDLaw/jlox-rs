@@ -30,7 +30,7 @@ impl<'a> Resolver<'a> {
       return Ok(());
     }
 
-    Err(LoxError::new_resolve_failure())
+    Err(LoxError::new_parse_failure())
   }
 
   fn resolve_expr(&self, expr: &Rc<Expr>) -> Result<(), LoxError> {
@@ -118,6 +118,10 @@ impl<'a> ExprVisitor<()> for Resolver<'a> {
     Ok(())
   }
 
+  fn visit_get_expr(&self, _wrapper: &Rc<Expr>, expr: &GetExpr) -> Result<(), LoxError> {
+    self.resolve_expr(&expr.object)
+  }
+
   fn visit_grouping_expr(&self, _wrapper: &Rc<Expr>, expr: &GroupingExpr) -> Result<(), LoxError> {
     self.resolve_expr(&expr.expression)
   }
@@ -129,6 +133,12 @@ impl<'a> ExprVisitor<()> for Resolver<'a> {
   fn visit_logical_expr(&self, _wrapper: &Rc<Expr>, expr: &LogicalExpr) -> Result<(), LoxError> {
     self.resolve_expr(&expr.left)?;
     self.resolve_expr(&expr.right)?;
+    Ok(())
+  }
+
+  fn visit_set_expr(&self, _wrapper: &Rc<Expr>, expr: &SetExpr) -> Result<(), LoxError> {
+    self.resolve_expr(&expr.value)?;
+    self.resolve_expr(&expr.object)?;
     Ok(())
   }
 
@@ -167,6 +177,19 @@ impl<'a> StmtVisitor<()> for Resolver<'a> {
   }
 
   fn visit_break_stmt(&self, _wrapper: &Rc<Stmt>, _stmt: &BreakStmt) -> Result<(), LoxError> {
+    Ok(())
+  }
+
+  fn visit_class_stmt(&self, _wrapper: &Rc<Stmt>, stmt: &ClassStmt) -> Result<(), LoxError> {
+    self.declare(&stmt.name);
+    self.define(&stmt.name);
+
+    for method in stmt.methods.iter() {
+      if let Stmt::Function(method) = method.as_ref() {
+        self.resolve_function(method, Some(FunctionType::Method))?;
+      }
+    }
+
     Ok(())
   }
 
@@ -232,4 +255,5 @@ impl<'a> StmtVisitor<()> for Resolver<'a> {
 
 enum FunctionType {
   Function,
+  Method,
 }

@@ -1,6 +1,6 @@
-use std::fmt;
+use std::{fmt, rc::Rc};
 
-use crate::{error::*, lox_callable::*};
+use crate::{error::*, lox_callable::*, lox_class::*, lox_instance::LoxInstance};
 
 #[derive(Debug, Clone)]
 pub struct Token {
@@ -70,7 +70,7 @@ impl fmt::Display for Token {
       self
         .literal
         .as_ref()
-        .map_or_else(|| "None".to_string(), |literal| literal.to_string())
+        .map_or_else(|| "None".to_string(), |l| l.to_string())
     )
   }
 }
@@ -81,6 +81,8 @@ pub enum Literal {
   String(String),
   Boolean(bool),
   Function(Callable),
+  Class(Rc<LoxClass>),
+  Instance(Rc<LoxInstance>),
   Nil,
 }
 
@@ -101,6 +103,8 @@ impl fmt::Display for Literal {
       Literal::String(s) => write!(f, "{s}"),
       Literal::Boolean(b) => write!(f, "{b}"),
       Literal::Function(fun) => write!(f, "{fun:?}"),
+      Literal::Class(c) => write!(f, "{c}"),
+      Literal::Instance(i) => write!(f, "{i}"),
       Literal::Nil => write!(f, "nil"),
     }
   }

@@ -82,7 +82,7 @@ impl Scanner {
       '/' => {
         if self.is_match('/') {
           while let Some(&c) = self.peek() {
-            if c != '\n' {
+            if c.ne(&'\n') {
               self.advance();
             } else {
               break;
@@ -127,7 +127,7 @@ impl Scanner {
       self.advance();
     }
 
-    if self.peek() == Some(&'.') && self.peek_next().is_some_and(char::is_ascii_digit) {
+    if self.peek().eq(&Some(&'.')) && self.peek_next().is_some_and(char::is_ascii_digit) {
       self.advance();
 
       while self.peek().is_some_and(char::is_ascii_digit) {
@@ -181,21 +181,21 @@ impl Scanner {
 
     let mut counter = 1_usize;
     loop {
-      if counter == 0 {
+      if counter.eq(&0) {
         break;
       }
 
       match self.peek() {
         Some('/') => {
           self.advance();
-          if self.peek() == Some(&'*') {
+          if self.peek().eq(&Some(&'*')) {
             self.advance();
             counter += 1;
           }
         }
         Some('*') => {
           self.advance();
-          if self.peek() == Some(&'/') {
+          if self.peek().eq(&Some(&'/')) {
             self.advance();
             counter -= 1;
           }
@@ -220,7 +220,7 @@ impl Scanner {
   }
 
   fn is_match(&mut self, expected: char) -> bool {
-    let res = matches!(self.source.get(self.current), Some(&c) if c == expected);
+    let res = matches!(self.source.get(self.current), Some(&c) if c.eq(&expected));
     if res {
       self.advance();
     }

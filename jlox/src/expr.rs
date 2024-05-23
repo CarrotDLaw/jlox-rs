@@ -11,9 +11,11 @@ pub enum Expr {
   Assign(Rc<AssignExpr>),
   Binary(Rc<BinaryExpr>),
   Call(Rc<CallExpr>),
+  Get(Rc<GetExpr>),
   Grouping(Rc<GroupingExpr>),
   Literal(Rc<LiteralExpr>),
   Logical(Rc<LogicalExpr>),
+  Set(Rc<SetExpr>),
   Unary(Rc<UnaryExpr>),
   Variable(Rc<VariableExpr>),
 }
@@ -24,9 +26,11 @@ impl Expr {
       Expr::Assign(expr) => expr_visitor.visit_assign_expr(wrapper, expr),
       Expr::Binary(expr) => expr_visitor.visit_binary_expr(wrapper, expr),
       Expr::Call(expr) => expr_visitor.visit_call_expr(wrapper, expr),
+      Expr::Get(expr) => expr_visitor.visit_get_expr(wrapper, expr),
       Expr::Grouping(expr) => expr_visitor.visit_grouping_expr(wrapper, expr),
       Expr::Literal(expr) => expr_visitor.visit_literal_expr(wrapper, expr),
       Expr::Logical(expr) => expr_visitor.visit_logical_expr(wrapper, expr),
+      Expr::Set(expr) => expr_visitor.visit_set_expr(wrapper, expr),
       Expr::Unary(expr) => expr_visitor.visit_unary_expr(wrapper, expr),
       Expr::Variable(expr) => expr_visitor.visit_variable_expr(wrapper, expr),
     }
@@ -39,9 +43,11 @@ impl PartialEq for Expr {
       (Expr::Assign(l0), Expr::Assign(r0)) => Rc::ptr_eq(l0, r0),
       (Expr::Binary(l0), Expr::Binary(r0)) => Rc::ptr_eq(l0, r0),
       (Expr::Call(l0), Expr::Call(r0)) => Rc::ptr_eq(l0, r0),
+      (Expr::Get(l0), Expr::Get(r0)) => Rc::ptr_eq(l0, r0),
       (Expr::Grouping(l0), Expr::Grouping(r0)) => Rc::ptr_eq(l0, r0),
       (Expr::Literal(l0), Expr::Literal(r0)) => Rc::ptr_eq(l0, r0),
       (Expr::Logical(l0), Expr::Logical(r0)) => Rc::ptr_eq(l0, r0),
+      (Expr::Set(l0), Expr::Set(r0)) => Rc::ptr_eq(l0, r0),
       (Expr::Unary(l0), Expr::Unary(r0)) => Rc::ptr_eq(l0, r0),
       (Expr::Variable(l0), Expr::Variable(r0)) => Rc::ptr_eq(l0, r0),
       _ => false,
@@ -78,6 +84,12 @@ pub struct CallExpr {
 }
 
 #[derive(Debug)]
+pub struct GetExpr {
+  pub object: Rc<Expr>,
+  pub name: Token,
+}
+
+#[derive(Debug)]
 pub struct GroupingExpr {
   pub expression: Rc<Expr>,
 }
@@ -95,6 +107,13 @@ pub struct LogicalExpr {
 }
 
 #[derive(Debug)]
+pub struct SetExpr {
+  pub object: Rc<Expr>,
+  pub name: Token,
+  pub value: Rc<Expr>,
+}
+
+#[derive(Debug)]
 pub struct UnaryExpr {
   pub operator: Token,
   pub right: Rc<Expr>,
@@ -109,9 +128,11 @@ pub trait ExprVisitor<T> {
   fn visit_assign_expr(&self, wrapper: &Rc<Expr>, expr: &AssignExpr) -> Result<T, LoxError>;
   fn visit_binary_expr(&self, wrapper: &Rc<Expr>, expr: &BinaryExpr) -> Result<T, LoxError>;
   fn visit_call_expr(&self, wrapper: &Rc<Expr>, expr: &CallExpr) -> Result<T, LoxError>;
+  fn visit_get_expr(&self, wrapper: &Rc<Expr>, expr: &GetExpr) -> Result<T, LoxError>;
   fn visit_grouping_expr(&self, wrapper: &Rc<Expr>, expr: &GroupingExpr) -> Result<T, LoxError>;
   fn visit_literal_expr(&self, wrapper: &Rc<Expr>, expr: &LiteralExpr) -> Result<T, LoxError>;
   fn visit_logical_expr(&self, wrapper: &Rc<Expr>, expr: &LogicalExpr) -> Result<T, LoxError>;
+  fn visit_set_expr(&self, wrapper: &Rc<Expr>, expr: &SetExpr) -> Result<T, LoxError>;
   fn visit_unary_expr(&self, wrapper: &Rc<Expr>, expr: &UnaryExpr) -> Result<T, LoxError>;
   fn visit_variable_expr(&self, wrapper: &Rc<Expr>, expr: &VariableExpr) -> Result<T, LoxError>;
 }
