@@ -72,7 +72,6 @@ impl Interpreter {
     environment: Environment,
   ) -> Result<(), LoxError> {
     let previous = self.environment.replace(RefCell::new(environment).into());
-
     let res = statements.iter().try_for_each(|s| self.execute(s));
 
     self.environment.replace(previous);

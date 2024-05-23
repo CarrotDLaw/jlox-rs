@@ -6,6 +6,7 @@ use crate::error::*;
 use crate::expr::*;
 use crate::token::*;
 
+#[derive(Debug)]
 pub enum Stmt {
   Block(Rc<BlockStmt>),
   Break(Rc<BreakStmt>),
@@ -69,44 +70,53 @@ impl Hash for Stmt {
   }
 }
 
+#[derive(Debug)]
 pub struct BlockStmt {
   pub statements: Rc<Vec<Rc<Stmt>>>,
 }
 
+#[derive(Debug)]
 pub struct BreakStmt {
   pub token: Token,
 }
 
+#[derive(Debug)]
 pub struct ExpressionStmt {
   pub expression: Rc<Expr>,
 }
 
+#[derive(Debug)]
 pub struct FunctionStmt {
   pub name: Token,
   pub params: Vec<Token>,
   pub body: Rc<Vec<Rc<Stmt>>>,
 }
 
+#[derive(Debug)]
 pub struct IfStmt {
   pub condition: Rc<Expr>,
   pub then_branch: Rc<Stmt>,
   pub else_branch: Option<Rc<Stmt>>,
 }
 
+#[derive(Debug)]
 pub struct PrintStmt {
   pub expression: Rc<Expr>,
 }
 
+#[derive(Debug)]
 pub struct ReturnStmt {
   pub keyword: Token,
   pub value: Option<Rc<Expr>>,
 }
 
+#[derive(Debug)]
 pub struct VarStmt {
   pub name: Token,
   pub initialiser: Option<Rc<Expr>>,
 }
 
+#[derive(Debug)]
 pub struct WhileStmt {
   pub condition: Rc<Expr>,
   pub body: Rc<Stmt>,

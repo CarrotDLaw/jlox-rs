@@ -2,17 +2,17 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{error::*, expr::*, interpreter::*, stmt::*, token::*};
 
-pub struct Resolver {
-  interpreter: Interpreter,
+pub struct Resolver<'a> {
+  interpreter: &'a Interpreter,
   scopes: RefCell<Vec<RefCell<HashMap<String, bool>>>>,
   current_function_type: RefCell<FunctionType>,
   had_error: RefCell<bool>,
 }
 
-impl Resolver {
+impl<'a> Resolver<'a> {
   pub fn new(interpreter: &Interpreter) -> Resolver {
     Resolver {
-      interpreter: interpreter.clone(),
+      interpreter,
       scopes: RefCell::new(Vec::new()),
       current_function_type: RefCell::new(FunctionType::None),
       had_error: RefCell::new(false),
@@ -53,7 +53,7 @@ impl Resolver {
     if let Some(s) = self.scopes.borrow().last() {
       if s.borrow().contains_key(name.get_lexeme()) {
         self.had_error.replace(true);
-        LoxError::runtime_error(name, "Already a variable with this name in this scope.");
+        LoxError::parse_error(name, "Already a variable with this name in this scope.");
       }
 
       s.borrow_mut().insert(name.get_lexeme().to_string(), false);
@@ -95,7 +95,7 @@ impl Resolver {
   }
 }
 
-impl ExprVisitor<()> for Resolver {
+impl<'a> ExprVisitor<()> for Resolver<'a> {
   fn visit_assign_expr(&self, wrapper: &Rc<Expr>, expr: &AssignExpr) -> Result<(), LoxError> {
     self.resolve_expr(&expr.value)?;
     self.resolve_local(wrapper, &expr.name);
@@ -142,12 +142,12 @@ impl ExprVisitor<()> for Resolver {
         .scopes
         .borrow()
         .last()
-        .ok_or_else(|| LoxError::runtime_error(&expr.name, "RESOLVER INTERNAL ERROR."))?
+        .ok_or_else(|| LoxError::parse_error(&expr.name, "RESOLVER INTERNAL ERROR."))?
         .borrow()
         .get(expr.name.get_lexeme())
         .is_some_and(|&b| !b)
     {
-      return Err(LoxError::runtime_error(
+      return Err(LoxError::parse_error(
         &expr.name,
         "Can't read local variable in its own initialiser.",
       ));
@@ -158,7 +158,7 @@ impl ExprVisitor<()> for Resolver {
   }
 }
 
-impl StmtVisitor<()> for Resolver {
+impl<'a> StmtVisitor<()> for Resolver<'a> {
   fn visit_block_stmt(&self, _wrapper: &Rc<Stmt>, stmt: &BlockStmt) -> Result<(), LoxError> {
     self.begin_scope();
     self.resolve(&stmt.statements.as_slice().into())?;
@@ -202,7 +202,7 @@ impl StmtVisitor<()> for Resolver {
   fn visit_return_stmt(&self, _wrapper: &Rc<Stmt>, stmt: &ReturnStmt) -> Result<(), LoxError> {
     if self.current_function_type.borrow().is_none() {
       self.had_error.replace(false);
-      LoxError::runtime_error(&stmt.keyword, "Can't return from top-level code.");
+      LoxError::parse_error(&stmt.keyword, "Can't return from top-level code.");
     }
 
     if let Some(v) = &stmt.value {

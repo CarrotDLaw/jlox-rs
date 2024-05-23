@@ -63,14 +63,14 @@ impl Environment {
   }
 
   pub fn get_at(&self, distance: usize, name: &Token) -> Result<Literal, LoxError> {
-    if let Some(e) = self.enclosing.as_ref() {
-      return e.borrow().get_at(distance - 1, name);
+    if distance.eq(&0) {
+      if let Some(l) = self.values.get(name.get_lexeme()) {
+        return Ok(l.clone());
+      }
     }
 
-    if distance.eq(&0) {
-      if let Some(o) = self.values.get(name.get_lexeme()) {
-        return Ok(o.clone());
-      }
+    if let Some(e) = self.enclosing.as_ref() {
+      return e.borrow().get_at(distance - 1, name);
     }
 
     unreachable!()
@@ -82,15 +82,16 @@ impl Environment {
     name: &Token,
     value: &Literal,
   ) -> Result<(), LoxError> {
-    if let Some(e) = self.enclosing.as_ref() {
-      e.borrow_mut().assign_at(distance - 1, name, value)?;
-      return Ok(());
-    }
-
     if distance.eq(&0) {
       self
         .values
         .insert(name.get_lexeme().to_string(), value.clone());
+      return Ok(());
+    }
+
+    if let Some(e) = self.enclosing.as_ref() {
+      e.borrow_mut().assign_at(distance - 1, name, value)?;
+      return Ok(());
     }
 
     Ok(())

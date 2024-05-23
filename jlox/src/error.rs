@@ -53,7 +53,7 @@ impl LoxError {
   }
 
   pub fn new_resolve_failure() -> LoxError {
-    LoxError(LoxErrorType::Runtime {
+    LoxError(LoxErrorType::Parse {
       token: Token::new_eof(0),
       message: String::new(),
     })

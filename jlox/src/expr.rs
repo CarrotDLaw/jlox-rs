@@ -5,6 +5,7 @@ use std::rc::Rc;
 use crate::error::*;
 use crate::token::*;
 
+#[derive(Debug)]
 pub enum Expr {
   Assign(Rc<AssignExpr>),
   Binary(Rc<BinaryExpr>),
@@ -64,42 +65,50 @@ impl Hash for Expr {
   }
 }
 
+#[derive(Debug)]
 pub struct AssignExpr {
   pub name: Token,
   pub value: Rc<Expr>,
 }
 
+#[derive(Debug)]
 pub struct BinaryExpr {
   pub left: Rc<Expr>,
   pub operator: Token,
   pub right: Rc<Expr>,
 }
 
+#[derive(Debug)]
 pub struct CallExpr {
   pub callee: Rc<Expr>,
   pub bracket: Token,
   pub arguments: Rc<Vec<Rc<Expr>>>,
 }
 
+#[derive(Debug)]
 pub struct GroupingExpr {
   pub expression: Rc<Expr>,
 }
 
+#[derive(Debug)]
 pub struct LiteralExpr {
   pub value: Option<Literal>,
 }
 
+#[derive(Debug)]
 pub struct LogicalExpr {
   pub left: Rc<Expr>,
   pub operator: Token,
   pub right: Rc<Expr>,
 }
 
+#[derive(Debug)]
 pub struct UnaryExpr {
   pub operator: Token,
   pub right: Rc<Expr>,
 }
 
+#[derive(Debug)]
 pub struct VariableExpr {
   pub name: Token,
 }

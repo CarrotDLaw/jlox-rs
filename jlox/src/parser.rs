@@ -351,7 +351,7 @@ impl<'a> Parser<'a> {
       statements.push(self.declaration()?);
     }
 
-    self.consume(&TokenType::RightBrace, "Expect '}}' after block.")?;
+    self.consume(&TokenType::RightBrace, "Expect '}' after block.")?;
     Ok(statements)
   }
 

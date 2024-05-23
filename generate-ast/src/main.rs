@@ -87,6 +87,7 @@ fn define_ast(
   }
 
   writeln!(file)?;
+  writeln!(file, "#[derive(Debug)]")?;
   writeln!(file, "pub enum {base_name} {{")?;
   for tree_type in tree_types.iter() {
     writeln!(file, "  {0}(Rc<{0}{1}>),", tree_type.class_name, base_name)?;
@@ -154,6 +155,7 @@ fn define_ast(
 
   for tree_type in tree_types.iter() {
     writeln!(file)?;
+    writeln!(file, "#[derive(Debug)]")?;
     writeln!(file, "pub struct {}{} {{", tree_type.class_name, base_name)?;
     for field in tree_type.fields.iter() {
       writeln!(file, "  pub {field},")?;
