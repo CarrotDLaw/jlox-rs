@@ -52,6 +52,13 @@ impl LoxError {
     })
   }
 
+  pub fn new_resolve_failure() -> LoxError {
+    LoxError(LoxErrorType::Runtime {
+      token: Token::new_eof(0),
+      message: String::new(),
+    })
+  }
+
   pub fn new_return(literal: &Literal) -> LoxError {
     LoxError(LoxErrorType::Return {
       value: literal.clone(),
