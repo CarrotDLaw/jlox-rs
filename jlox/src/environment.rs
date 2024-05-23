@@ -94,7 +94,7 @@ impl Environment {
       return Ok(());
     }
 
-    Ok(())
+    unreachable!()
   }
 }
 

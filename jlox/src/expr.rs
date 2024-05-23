@@ -1,5 +1,6 @@
 use std::hash::Hash;
 use std::hash::Hasher;
+use std::mem::discriminant;
 use std::rc::Rc;
 
 use crate::error::*;
@@ -35,14 +36,14 @@ impl Expr {
 impl PartialEq for Expr {
   fn eq(&self, other: &Expr) -> bool {
     match (self, other) {
-     (Expr::Assign(l0), Expr::Assign(r0)) => Rc::ptr_eq(l0, r0),
-     (Expr::Binary(l0), Expr::Binary(r0)) => Rc::ptr_eq(l0, r0),
-     (Expr::Call(l0), Expr::Call(r0)) => Rc::ptr_eq(l0, r0),
-     (Expr::Grouping(l0), Expr::Grouping(r0)) => Rc::ptr_eq(l0, r0),
-     (Expr::Literal(l0), Expr::Literal(r0)) => Rc::ptr_eq(l0, r0),
-     (Expr::Logical(l0), Expr::Logical(r0)) => Rc::ptr_eq(l0, r0),
-     (Expr::Unary(l0), Expr::Unary(r0)) => Rc::ptr_eq(l0, r0),
-     (Expr::Variable(l0), Expr::Variable(r0)) => Rc::ptr_eq(l0, r0),
+      (Expr::Assign(l0), Expr::Assign(r0)) => Rc::ptr_eq(l0, r0),
+      (Expr::Binary(l0), Expr::Binary(r0)) => Rc::ptr_eq(l0, r0),
+      (Expr::Call(l0), Expr::Call(r0)) => Rc::ptr_eq(l0, r0),
+      (Expr::Grouping(l0), Expr::Grouping(r0)) => Rc::ptr_eq(l0, r0),
+      (Expr::Literal(l0), Expr::Literal(r0)) => Rc::ptr_eq(l0, r0),
+      (Expr::Logical(l0), Expr::Logical(r0)) => Rc::ptr_eq(l0, r0),
+      (Expr::Unary(l0), Expr::Unary(r0)) => Rc::ptr_eq(l0, r0),
+      (Expr::Variable(l0), Expr::Variable(r0)) => Rc::ptr_eq(l0, r0),
       _ => false,
     }
   }
@@ -52,16 +53,7 @@ impl Eq for Expr {}
 
 impl Hash for Expr {
   fn hash<H: Hasher>(&self, state: &mut H) {
-    match self {
-       Expr::Assign(e) => state.write_usize(Rc::as_ptr(e) as usize),
-       Expr::Binary(e) => state.write_usize(Rc::as_ptr(e) as usize),
-       Expr::Call(e) => state.write_usize(Rc::as_ptr(e) as usize),
-       Expr::Grouping(e) => state.write_usize(Rc::as_ptr(e) as usize),
-       Expr::Literal(e) => state.write_usize(Rc::as_ptr(e) as usize),
-       Expr::Logical(e) => state.write_usize(Rc::as_ptr(e) as usize),
-       Expr::Unary(e) => state.write_usize(Rc::as_ptr(e) as usize),
-       Expr::Variable(e) => state.write_usize(Rc::as_ptr(e) as usize),
-    }
+    discriminant(self).hash(state);
   }
 }
 
