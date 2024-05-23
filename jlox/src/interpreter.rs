@@ -193,7 +193,7 @@ impl ExprVisitor<Literal> for Interpreter {
     let callee = self.evaluate(&expr.callee)?;
 
     let mut arguments = Vec::new();
-    for argument in expr.arguments.as_slice().iter() {
+    for argument in expr.arguments.as_slice() {
       arguments.push(self.evaluate(argument)?);
     }
 

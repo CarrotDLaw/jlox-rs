@@ -5,7 +5,7 @@ use crate::{error::*, expr::*, interpreter::*, stmt::*, token::*};
 pub struct Resolver<'a> {
   interpreter: &'a Interpreter,
   scopes: RefCell<Vec<RefCell<HashMap<String, bool>>>>,
-  current_function_type: RefCell<FunctionType>,
+  current_function_type: RefCell<Option<FunctionType>>,
   had_error: RefCell<bool>,
 }
 
@@ -14,7 +14,7 @@ impl<'a> Resolver<'a> {
     Resolver {
       interpreter,
       scopes: RefCell::new(Vec::new()),
-      current_function_type: RefCell::new(FunctionType::None),
+      current_function_type: RefCell::new(None),
       had_error: RefCell::new(false),
     }
   }
@@ -78,12 +78,12 @@ impl<'a> Resolver<'a> {
   fn resolve_function(
     &self,
     function: &FunctionStmt,
-    function_type: &FunctionType,
+    function_type: Option<FunctionType>,
   ) -> Result<(), LoxError> {
-    let enclosing_function_type = self.current_function_type.replace(function_type.clone());
+    let enclosing_function_type = self.current_function_type.replace(function_type);
     self.begin_scope();
 
-    for param in function.params.iter() {
+    for param in &function.params {
       self.declare(param);
       self.define(param);
     }
@@ -181,7 +181,7 @@ impl<'a> StmtVisitor<()> for Resolver<'a> {
   fn visit_function_stmt(&self, _wrapper: &Rc<Stmt>, stmt: &FunctionStmt) -> Result<(), LoxError> {
     self.declare(&stmt.name);
     self.define(&stmt.name);
-    self.resolve_function(stmt, &FunctionType::Function)
+    self.resolve_function(stmt, Some(FunctionType::Function))
   }
 
   fn visit_if_stmt(&self, _wrapper: &Rc<Stmt>, stmt: &IfStmt) -> Result<(), LoxError> {
@@ -230,18 +230,6 @@ impl<'a> StmtVisitor<()> for Resolver<'a> {
   }
 }
 
-#[derive(Clone)]
 enum FunctionType {
-  None,
   Function,
-}
-
-impl FunctionType {
-  fn is_none(&self) -> bool {
-    if let FunctionType::None = self {
-      return true;
-    }
-
-    false
-  }
 }
