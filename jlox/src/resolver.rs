@@ -254,7 +254,7 @@ impl<'a> StmtVisitor<()> for Resolver<'a> {
     self.end_scope();
 
     if stmt.superclass.is_some() {
-      self.end_scope()
+      self.end_scope();
     }
 
     self.current_class_type.replace(enclosing_class);

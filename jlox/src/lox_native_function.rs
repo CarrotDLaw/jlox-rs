@@ -32,7 +32,12 @@ impl LoxCallable for Clock {
     0
   }
 
-  fn call(&self, _interpreter: &Interpreter, _arguments: &[Literal], _class: Option<Rc<LoxClass>>) -> Result<Literal, LoxError> {
+  fn call(
+    &self,
+    _interpreter: &Interpreter,
+    _arguments: &[Literal],
+    _class: Option<Rc<LoxClass>>,
+  ) -> Result<Literal, LoxError> {
     if let Ok(d) = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
       return Ok(Literal::Number(d.as_secs_f64()));
     }

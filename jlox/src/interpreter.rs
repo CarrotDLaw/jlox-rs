@@ -85,10 +85,6 @@ impl Interpreter {
     res
   }
 
-  fn is_truthy(&self, object: &Literal) -> bool {
-    !matches!(object, Literal::Nil | Literal::Boolean(false))
-  }
-
   fn internal_error(operator: &Token) -> LoxError {
     LoxError::runtime_error(operator, "INTERPRETER INTERNAL ERROR.")
   }
@@ -137,8 +133,8 @@ impl ExprVisitor<Literal> for Interpreter {
         TokenType::GreaterEqual => Ok(Literal::Boolean(left >= right)),
         TokenType::Less => Ok(Literal::Boolean(left < right)),
         TokenType::LessEqual => Ok(Literal::Boolean(left <= right)),
-        TokenType::BangEqual => Ok(Literal::Boolean(left != right)),
-        TokenType::EqualEqual => Ok(Literal::Boolean(left == right)),
+        TokenType::BangEqual => Ok(Literal::Boolean((left - right).abs() > f64::EPSILON)),
+        TokenType::EqualEqual => Ok(Literal::Boolean((left - right).abs() < f64::EPSILON)),
         _ => Err(Interpreter::internal_error(&expr.operator)),
       };
     }
@@ -271,10 +267,10 @@ impl ExprVisitor<Literal> for Interpreter {
     let left = self.evaluate(&expr.left)?;
 
     if expr.operator.is_type(&TokenType::Or) {
-      if self.is_truthy(&left) {
+      if left.is_truthy() {
         return Ok(left);
       }
-    } else if !self.is_truthy(&left) {
+    } else if !left.is_truthy() {
       return Ok(left);
     }
 
@@ -307,9 +303,7 @@ impl ExprVisitor<Literal> for Interpreter {
       .borrow()
       .borrow()
       .get_at(distance, "super")?;
-    let superclass = if let Literal::Class(c) = superclass {
-      c
-    } else {
+    let Literal::Class(superclass) = superclass else {
       panic!()
     };
     let object = self
@@ -340,7 +334,7 @@ impl ExprVisitor<Literal> for Interpreter {
     let right = self.evaluate(&expr.right)?;
 
     match expr.operator.get_type() {
-      TokenType::Bang => Ok(Literal::Boolean(!self.is_truthy(&right))),
+      TokenType::Bang => Ok(Literal::Boolean(!right.is_truthy())),
       TokenType::Minus => Ok(Literal::Number(
         -right
           .get_number()
@@ -450,7 +444,7 @@ impl StmtVisitor<()> for Interpreter {
   }
 
   fn visit_if_stmt(&self, _wrapper: &Rc<Stmt>, stmt: &IfStmt) -> Result<(), LoxError> {
-    if self.is_truthy(&self.evaluate(&stmt.condition)?) {
+    if self.evaluate(&stmt.condition)?.is_truthy() {
       return self.execute(&stmt.then_branch);
     }
 
@@ -490,7 +484,7 @@ impl StmtVisitor<()> for Interpreter {
   }
 
   fn visit_while_stmt(&self, _wrapper: &Rc<Stmt>, stmt: &WhileStmt) -> Result<(), LoxError> {
-    while self.is_truthy(&self.evaluate(&stmt.condition)?) {
+    while self.evaluate(&stmt.condition)?.is_truthy() {
       let mut body = self.execute(&stmt.body);
       if body.as_mut().is_err_and(|e| e.is_break()) {
         break;

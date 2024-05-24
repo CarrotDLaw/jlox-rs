@@ -95,6 +95,10 @@ impl Literal {
 
     Err(LoxError::new_type_error())
   }
+
+  pub fn is_truthy(&self) -> bool {
+    !matches!(self, Literal::Nil | Literal::Boolean(false))
+  }
 }
 
 impl fmt::Display for Literal {

@@ -1,6 +1,8 @@
 use std::{cell::RefCell, fmt, rc::Rc};
 
-use crate::{environment::*, error::*, interpreter::*, lox_callable::*, lox_class::LoxClass, stmt::*, token::*};
+use crate::{
+  environment::*, error::*, interpreter::*, lox_callable::*, lox_class::*, stmt::*, token::*,
+};
 
 #[derive(Debug, Clone)]
 pub struct LoxFunction {
@@ -35,7 +37,7 @@ impl LoxFunction {
         name: self.name.clone(),
         params: self.params.clone(),
         body: self.body.clone(),
-        is_initialiser: self.is_initialiser
+        is_initialiser: self.is_initialiser,
       }
       .into(),
     )
@@ -47,13 +49,18 @@ impl LoxCallable for LoxFunction {
     self.params.len() as u8
   }
 
-  fn call(&self, interpreter: &Interpreter, arguments: &[Literal], _class: Option<Rc<LoxClass>>) -> Result<Literal, LoxError> {
+  fn call(
+    &self,
+    interpreter: &Interpreter,
+    arguments: &[Literal],
+    _class: Option<Rc<LoxClass>>,
+  ) -> Result<Literal, LoxError> {
     let mut environment = Environment::new_with_enclosing(&self.closure.clone());
 
     for (param, arg) in self.params.iter().zip(arguments.iter()) {
       environment.define(param.get_lexeme(), arg.clone());
     }
-    
+
     if self.is_initialiser {
       return self.closure.borrow().get_at(0, "this");
     }
@@ -61,7 +68,6 @@ impl LoxCallable for LoxFunction {
     if let Err(v) = interpreter.execute_block(&self.body.as_slice().into(), environment) {
       return v.get_return_value();
     }
-
 
     Ok(Literal::Nil)
   }

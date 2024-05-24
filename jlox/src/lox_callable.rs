@@ -9,7 +9,12 @@ pub struct Callable {
 
 pub trait LoxCallable {
   fn arity(&self) -> u8;
-  fn call(&self, interpreter: &Interpreter, arguments: &[Literal], class: Option<Rc<LoxClass>>) -> Result<Literal, LoxError>;
+  fn call(
+    &self,
+    interpreter: &Interpreter,
+    arguments: &[Literal],
+    class: Option<Rc<LoxClass>>,
+  ) -> Result<Literal, LoxError>;
 }
 
 impl fmt::Debug for Callable {

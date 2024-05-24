@@ -361,6 +361,7 @@ impl<'a> Parser<'a> {
           self.had_error = true;
           LoxError::parse_error(self.peek(), "Can't have more than 255 parameters.");
         }
+
         params.push(
           self
             .consume(&TokenType::Identifier, "Expect parameter name.")?
