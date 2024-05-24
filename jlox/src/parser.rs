@@ -398,7 +398,6 @@ impl<'a> Parser<'a> {
     }
 
     if let Expr::Get(g) = expr {
-      // let get = g;
       return Ok(Expr::Set(
         SetExpr {
           object: g.object.clone(),
@@ -574,7 +573,7 @@ impl<'a> Parser<'a> {
     loop {
       if self.is_match(&[&TokenType::LeftBracket]) {
         expr = self.finish_call(expr.into())?;
-      } else if self.is_match(&[&TokenType::Class]) {
+      } else if self.is_match(&[&TokenType::Dot]) {
         let name = self.consume(&TokenType::Identifier, "Expect property name after '.'.")?;
         expr = Expr::Get(
           GetExpr {
@@ -623,6 +622,15 @@ impl<'a> Parser<'a> {
       return Ok(Expr::Literal(
         LiteralExpr {
           value: self.previous().get_literal().clone(),
+        }
+        .into(),
+      ));
+    }
+
+    if self.is_match(&[&TokenType::This]) {
+      return Ok(Expr::This(
+        ThisExpr {
+          keyword: self.previous().clone(),
         }
         .into(),
       ));

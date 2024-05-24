@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap, fmt};
+use std::{cell::RefCell, collections::HashMap, fmt, rc::Rc};
 
 use crate::{error::*, interpreter::*, lox_callable::*, lox_instance::*, token::*};
 
@@ -23,13 +23,23 @@ impl LoxClass {
 
 impl LoxCallable for LoxClass {
   fn arity(&self) -> u8 {
+    if let Some(Literal::Function(initialiser)) = self.find_method("init") {
+      return initialiser.arity();
+    }
+
     0
   }
 
-  fn call(&self, _interpreter: &Interpreter, _arguments: &[Literal]) -> Result<Literal, LoxError> {
-    Ok(Literal::Instance(
-      LoxInstance::new(&self.clone().into()).into(),
-    ))
+  fn call(&self, interpreter: &Interpreter, arguments: &[Literal], class: Option<Rc<LoxClass>>) -> Result<Literal, LoxError> {
+    let instance = Literal::Instance(LoxInstance::new(&self.clone().into()).into());
+
+    if let Some(Literal::Function(initialiser)) = self.find_method("init") {
+      if let Literal::Function(m) = initialiser.bind(&instance) {
+        m.call(interpreter, arguments, class)?;
+      }
+    }
+
+    Ok(instance)
   }
 }
 

@@ -5,6 +5,7 @@ use crate::{error::*, expr::*, interpreter::*, stmt::*, token::*};
 pub struct Resolver<'a> {
   interpreter: &'a Interpreter,
   scopes: RefCell<Vec<RefCell<HashMap<String, bool>>>>,
+  current_class_type: RefCell<Option<ClassType>>,
   current_function_type: RefCell<Option<FunctionType>>,
   had_error: RefCell<bool>,
 }
@@ -14,6 +15,7 @@ impl<'a> Resolver<'a> {
     Resolver {
       interpreter,
       scopes: RefCell::new(Vec::new()),
+      current_class_type: RefCell::new(None),
       current_function_type: RefCell::new(None),
       had_error: RefCell::new(false),
     }
@@ -142,6 +144,17 @@ impl<'a> ExprVisitor<()> for Resolver<'a> {
     Ok(())
   }
 
+  fn visit_this_expr(&self, wrapper: &Rc<Expr>, expr: &ThisExpr) -> Result<(), LoxError> {
+    if self.current_class_type.borrow().is_none() {
+      self.had_error.replace(true);
+      LoxError::parse_error(&expr.keyword, "Can't use 'this' outside of a class.");
+      return Ok(());
+    }
+
+    self.resolve_local(wrapper, &expr.keyword);
+    Ok(())
+  }
+
   fn visit_unary_expr(&self, _wrapper: &Rc<Expr>, expr: &UnaryExpr) -> Result<(), LoxError> {
     self.resolve_expr(&expr.right)
   }
@@ -181,15 +194,31 @@ impl<'a> StmtVisitor<()> for Resolver<'a> {
   }
 
   fn visit_class_stmt(&self, _wrapper: &Rc<Stmt>, stmt: &ClassStmt) -> Result<(), LoxError> {
+    let enclosing_class = self.current_class_type.replace(Some(ClassType::Class));
+
     self.declare(&stmt.name);
     self.define(&stmt.name);
 
+    self.begin_scope();
+    if let Some(s) = self.scopes.borrow().last() {
+      s.borrow_mut().insert("this".to_string(), true);
+    }
+
     for method in stmt.methods.iter() {
       if let Stmt::Function(method) = method.as_ref() {
-        self.resolve_function(method, Some(FunctionType::Method))?;
+        self.resolve_function(
+          method,
+          if method.name.get_lexeme().eq("init") {
+            Some(FunctionType::Initialiser)
+          } else {
+            Some(FunctionType::Method)
+          },
+        )?;
       }
     }
 
+    self.end_scope();
+    self.current_class_type.replace(enclosing_class);
     Ok(())
   }
 
@@ -224,11 +253,16 @@ impl<'a> StmtVisitor<()> for Resolver<'a> {
 
   fn visit_return_stmt(&self, _wrapper: &Rc<Stmt>, stmt: &ReturnStmt) -> Result<(), LoxError> {
     if self.current_function_type.borrow().is_none() {
-      self.had_error.replace(false);
+      self.had_error.replace(true);
       LoxError::parse_error(&stmt.keyword, "Can't return from top-level code.");
     }
 
     if let Some(v) = &stmt.value {
+      if self.current_function_type.borrow().is_initialiser() {
+        self.had_error.replace(true);
+        LoxError::parse_error(&stmt.keyword, "Can't return a value from an initializer.");
+      }
+
       self.resolve_expr(v)?;
     }
 
@@ -253,7 +287,26 @@ impl<'a> StmtVisitor<()> for Resolver<'a> {
   }
 }
 
+enum ClassType {
+  Class,
+}
+
 enum FunctionType {
   Function,
+  Initialiser,
   Method,
+}
+
+trait CheckType {
+  fn is_initialiser(&self) -> bool;
+}
+
+impl CheckType for Option<FunctionType> {
+  fn is_initialiser(&self) -> bool {
+    if let Some(FunctionType::Initialiser) = self {
+      return true;
+    }
+
+    false
+  }
 }

@@ -1,7 +1,7 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
-  environment::*, error::*, expr::*, lox_callable::*, lox_class::LoxClass, lox_function::*,
+  environment::*, error::*, expr::*, lox_callable::*, lox_class::*, lox_function::*,
   lox_native_function::*, stmt::*, token::*,
 };
 
@@ -18,9 +18,12 @@ impl Interpreter {
 
     globals.borrow_mut().define(
       "clock",
-      Literal::Function(Callable {
-        fun: Rc::new(Clock),
-      }),
+      Literal::NativeFunction(
+        LoxNativeFunction {
+          fun: Rc::new(Clock),
+        }
+        .into(),
+      ),
     );
 
     Interpreter {
@@ -60,7 +63,11 @@ impl Interpreter {
 
   fn look_up_variable(&self, name: &Token, expr: &Rc<Expr>) -> Result<Literal, LoxError> {
     if let Some(&distance) = self.locals.borrow().get(expr) {
-      return self.environment.borrow().borrow().get_at(distance, name);
+      return self
+        .environment
+        .borrow()
+        .borrow()
+        .get_at(distance, name.get_lexeme());
     }
 
     self.globals.borrow().get(name)
@@ -197,34 +204,25 @@ impl ExprVisitor<Literal> for Interpreter {
       arguments.push(self.evaluate(argument)?);
     }
 
-    if let Literal::Function(f) = callee {
-      if arguments.len().ne(&f.fun.arity().into()) {
+    let (function, class): (Option<Rc<dyn LoxCallable>>, Option<Rc<LoxClass>>) = match callee {
+      Literal::Function(f) => (Some(f), None),
+      Literal::Class(c) => (Some(c.clone()), Some(c.clone())),
+      _ => (None, None),
+    };
+
+    if let Some(callable) = function {
+      if arguments.len().ne(&(callable.arity() as usize)) {
         return Err(LoxError::runtime_error(
           &expr.bracket,
           &format!(
             "Expected {} arguments but got {}.",
-            f.fun.arity(),
+            callable.arity(),
             arguments.len()
           ),
         ));
       }
 
-      return f.fun.call(self, &arguments);
-    }
-
-    if let Literal::Class(c) = callee {
-      if arguments.len().ne(&c.arity().into()) {
-        return Err(LoxError::runtime_error(
-          &expr.bracket,
-          &format!(
-            "Expected {} arguments but got {}.",
-            c.arity(),
-            arguments.len()
-          ),
-        ));
-      }
-
-      return c.call(self, &arguments);
+      return callable.call(self, &arguments, class);
     }
 
     Err(LoxError::runtime_error(
@@ -236,7 +234,7 @@ impl ExprVisitor<Literal> for Interpreter {
   fn visit_get_expr(&self, _wrapper: &Rc<Expr>, expr: &GetExpr) -> Result<Literal, LoxError> {
     let object = self.evaluate(&expr.object)?;
     if let Literal::Instance(i) = object {
-      return i.get(&expr.name);
+      return i.get(&expr.name, &i);
     }
 
     Err(LoxError::runtime_error(
@@ -298,6 +296,10 @@ impl ExprVisitor<Literal> for Interpreter {
     ))
   }
 
+  fn visit_this_expr(&self, wrapper: &Rc<Expr>, expr: &ThisExpr) -> Result<Literal, LoxError> {
+    self.look_up_variable(&expr.keyword, wrapper)
+  }
+
   fn visit_unary_expr(&self, _wrapper: &Rc<Expr>, expr: &UnaryExpr) -> Result<Literal, LoxError> {
     let right = self.evaluate(&expr.right)?;
 
@@ -340,11 +342,16 @@ impl StmtVisitor<()> for Interpreter {
 
     let mut methods = HashMap::new();
     for method in stmt.methods.iter() {
-      if let Stmt::Function(f) = method.as_ref() {
-        let function = Literal::Function(Callable {
-          fun: Rc::new(LoxFunction::new(&self.environment.borrow(), f)),
-        });
-        methods.insert(f.name.get_lexeme().to_string(), function);
+      if let Stmt::Function(m) = method.as_ref() {
+        let function = Literal::Function(
+          LoxFunction::new(
+            &self.environment.borrow(),
+            m,
+            m.name.get_lexeme().eq("init"),
+          )
+          .into(),
+        );
+        methods.insert(m.name.get_lexeme().to_string(), function);
       }
     }
 
@@ -366,14 +373,13 @@ impl StmtVisitor<()> for Interpreter {
   }
 
   fn visit_function_stmt(&self, _wrapper: &Rc<Stmt>, stmt: &FunctionStmt) -> Result<(), LoxError> {
-    let function = LoxFunction::new(&self.environment.borrow(), stmt);
+    let function = LoxFunction::new(&self.environment.borrow(), stmt, false);
 
-    self.environment.borrow().borrow_mut().define(
-      stmt.name.get_lexeme(),
-      Literal::Function(Callable {
-        fun: Rc::new(function),
-      }),
-    );
+    self
+      .environment
+      .borrow()
+      .borrow_mut()
+      .define(stmt.name.get_lexeme(), Literal::Function(function.into()));
 
     Ok(())
   }

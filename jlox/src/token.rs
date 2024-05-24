@@ -1,6 +1,6 @@
 use std::{fmt, rc::Rc};
 
-use crate::{error::*, lox_callable::*, lox_class::*, lox_instance::LoxInstance};
+use crate::{error::*, lox_class::*, lox_function::*, lox_instance::*, lox_native_function::*};
 
 #[derive(Debug, Clone)]
 pub struct Token {
@@ -80,7 +80,8 @@ pub enum Literal {
   Number(f64),
   String(String),
   Boolean(bool),
-  Function(Callable),
+  Function(Rc<LoxFunction>),
+  NativeFunction(Rc<LoxNativeFunction>),
   Class(Rc<LoxClass>),
   Instance(Rc<LoxInstance>),
   Nil,
@@ -102,7 +103,8 @@ impl fmt::Display for Literal {
       Literal::Number(n) => write!(f, "{n}"),
       Literal::String(s) => write!(f, "{s}"),
       Literal::Boolean(b) => write!(f, "{b}"),
-      Literal::Function(fun) => write!(f, "{fun:?}"),
+      Literal::Function(fun) => write!(f, "{fun}"),
+      Literal::NativeFunction(fun) => write!(f, "{fun}"),
       Literal::Class(c) => write!(f, "{c}"),
       Literal::Instance(i) => write!(f, "{i}"),
       Literal::Nil => write!(f, "nil"),

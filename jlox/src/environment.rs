@@ -62,9 +62,9 @@ impl Environment {
     self.values.insert(name.to_string(), value);
   }
 
-  pub fn get_at(&self, distance: usize, name: &Token) -> Result<Literal, LoxError> {
+  pub fn get_at(&self, distance: usize, name: &str) -> Result<Literal, LoxError> {
     if distance.eq(&0) {
-      if let Some(l) = self.values.get(name.get_lexeme()) {
+      if let Some(l) = self.values.get(name) {
         return Ok(l.clone());
       }
     }

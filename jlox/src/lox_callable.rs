@@ -1,6 +1,6 @@
 use std::{fmt, rc::Rc};
 
-use crate::{error::*, interpreter::*, token::*};
+use crate::{error::*, interpreter::*, lox_class::*, token::*};
 
 #[derive(Clone)]
 pub struct Callable {
@@ -9,12 +9,12 @@ pub struct Callable {
 
 pub trait LoxCallable {
   fn arity(&self) -> u8;
-  fn call(&self, interpreter: &Interpreter, arguments: &[Literal]) -> Result<Literal, LoxError>;
+  fn call(&self, interpreter: &Interpreter, arguments: &[Literal], class: Option<Rc<LoxClass>>) -> Result<Literal, LoxError>;
 }
 
 impl fmt::Debug for Callable {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "<Callable>")
+    write!(f, "<DEBUG CALLABLE>")
   }
 }
 

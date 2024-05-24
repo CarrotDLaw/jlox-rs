@@ -16,13 +16,13 @@ impl LoxInstance {
     }
   }
 
-  pub fn get(&self, name: &Token) -> Result<Literal, LoxError> {
+  pub fn get(&self, name: &Token, this: &Rc<LoxInstance>) -> Result<Literal, LoxError> {
     if let Some(f) = self.fields.borrow().get(name.get_lexeme()) {
       return Ok(f.clone());
     }
 
-    if let Some(m) = self.class.find_method(name.get_lexeme()) {
-      return Ok(m.clone())
+    if let Some(Literal::Function(m)) = self.class.find_method(name.get_lexeme()) {
+      return Ok(m.bind(&Literal::Instance(this.clone())));
     }
 
     Err(LoxError::runtime_error(
