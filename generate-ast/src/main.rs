@@ -13,10 +13,10 @@ struct TreeType {
 fn main() -> io::Result<()> {
   let args = args().collect::<Vec<String>>();
   if args.len().ne(&2) {
-    eprintln!("Usage: generate_ast <output directory>");
+    eprintln!("Usage: generate-ast <output directory>");
     exit(64);
   }
-  let output_dir = args.get(1).expect("Error reading input.");
+  let output_dir = args.get(1).expect("ERROR READING INPUT.");
 
   define_ast(
     output_dir,
@@ -31,6 +31,7 @@ fn main() -> io::Result<()> {
       "Literal  : Option<Literal> value",
       "Logical  : Rc<Expr> left, Token operator, Rc<Expr> right",
       "Set      : Rc<Expr> object, Token name, Rc<Expr> value",
+      "Super      : Token keyword, Token method",
       "This     : Token keyword",
       "Unary    : Token operator, Rc<Expr> right",
       "Variable : Token name",
@@ -44,7 +45,7 @@ fn main() -> io::Result<()> {
     &[
       "Block      : Rc<Vec<Rc<Stmt>>> statements",
       "Break      : Token token",
-      "Class      : Token name, Rc<Vec<Rc<Stmt>>> methods",
+      "Class      : Token name, Option<Rc<Expr>> superclass, Rc<Vec<Rc<Stmt>>> methods",
       "Expression : Rc<Expr> expression",
       "Function   : Token name, Vec<Token> params, Rc<Vec<Rc<Stmt>>> body",
       "If         : Rc<Expr> condition, Rc<Stmt> then_branch, Option<Rc<Stmt>> else_branch",

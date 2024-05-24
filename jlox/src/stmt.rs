@@ -77,6 +77,7 @@ pub struct BreakStmt {
 #[derive(Debug)]
 pub struct ClassStmt {
   pub name: Token,
+  pub superclass: Option<Rc<Expr>>,
   pub methods: Rc<Vec<Rc<Stmt>>>,
 }
 

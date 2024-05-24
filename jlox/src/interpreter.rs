@@ -296,6 +296,42 @@ impl ExprVisitor<Literal> for Interpreter {
     ))
   }
 
+  fn visit_super_expr(&self, wrapper: &Rc<Expr>, expr: &SuperExpr) -> Result<Literal, LoxError> {
+    let distance = self
+      .locals
+      .borrow()
+      .get(wrapper)
+      .map_or_else(|| 0_usize, |&v| v);
+    let superclass = self
+      .environment
+      .borrow()
+      .borrow()
+      .get_at(distance, "super")?;
+    let superclass = if let Literal::Class(c) = superclass {
+      c
+    } else {
+      panic!()
+    };
+    let object = self
+      .environment
+      .borrow()
+      .borrow()
+      .get_at(distance - 1, "this")?;
+    let method = superclass
+      .find_method(expr.method.get_lexeme())
+      .ok_or_else(|| {
+        LoxError::runtime_error(
+          &expr.method,
+          &format!("Undefined property '{}'.", expr.method.get_lexeme()),
+        )
+      })?;
+    if let Literal::Function(f) = method {
+      return Ok(f.bind(&object));
+    }
+
+    unreachable!()
+  }
+
   fn visit_this_expr(&self, wrapper: &Rc<Expr>, expr: &ThisExpr) -> Result<Literal, LoxError> {
     self.look_up_variable(&expr.keyword, wrapper)
   }
@@ -334,11 +370,35 @@ impl StmtVisitor<()> for Interpreter {
   }
 
   fn visit_class_stmt(&self, _wrapper: &Rc<Stmt>, stmt: &ClassStmt) -> Result<(), LoxError> {
+    let superclass = if let Some(s) = &stmt.superclass {
+      let superclass = self.evaluate(s)?;
+      if let Literal::Class(c) = superclass {
+        Some(c)
+      } else if let Expr::Variable(v) = s.as_ref() {
+        return Err(LoxError::runtime_error(
+          &v.name,
+          "Superclass must be a class.",
+        ));
+      } else {
+        unreachable!()
+      }
+    } else {
+      None
+    };
+
     self
       .environment
       .borrow()
       .borrow_mut()
       .define(stmt.name.get_lexeme(), Literal::Nil);
+
+    let enclosing = if let Some(s) = superclass.as_ref() {
+      let mut environment = Environment::new_with_enclosing(&self.environment.borrow().clone());
+      environment.define("super", Literal::Class(s.clone()));
+      Some(self.environment.replace(RefCell::new(environment).into()))
+    } else {
+      None
+    };
 
     let mut methods = HashMap::new();
     for method in stmt.methods.iter() {
@@ -355,7 +415,12 @@ impl StmtVisitor<()> for Interpreter {
       }
     }
 
-    let class = Literal::Class(LoxClass::new(stmt.name.get_lexeme(), &methods).into());
+    let class = Literal::Class(LoxClass::new(stmt.name.get_lexeme(), &superclass, &methods).into());
+
+    if let Some(e) = enclosing {
+      self.environment.replace(e);
+    }
+
     self
       .environment
       .borrow()

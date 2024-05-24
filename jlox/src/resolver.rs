@@ -144,6 +144,22 @@ impl<'a> ExprVisitor<()> for Resolver<'a> {
     Ok(())
   }
 
+  fn visit_super_expr(&self, wrapper: &Rc<Expr>, expr: &SuperExpr) -> Result<(), LoxError> {
+    if self.current_class_type.borrow().is_none() {
+      self.had_error.replace(true);
+      LoxError::parse_error(&expr.keyword, "Can't use 'super' outside of a class.");
+    } else if !self.current_class_type.borrow().is_subclass() {
+      self.had_error.replace(true);
+      LoxError::parse_error(
+        &expr.keyword,
+        "Can't use 'super' in a class with no superclass.",
+      );
+    }
+
+    self.resolve_local(wrapper, &expr.keyword);
+    Ok(())
+  }
+
   fn visit_this_expr(&self, wrapper: &Rc<Expr>, expr: &ThisExpr) -> Result<(), LoxError> {
     if self.current_class_type.borrow().is_none() {
       self.had_error.replace(true);
@@ -199,6 +215,24 @@ impl<'a> StmtVisitor<()> for Resolver<'a> {
     self.declare(&stmt.name);
     self.define(&stmt.name);
 
+    if let Some(s) = &stmt.superclass {
+      self.current_class_type.replace(Some(ClassType::Subclass));
+
+      if let Expr::Variable(v) = s.as_ref() {
+        if stmt.name.get_lexeme().eq(v.name.get_lexeme()) {
+          self.had_error.replace(true);
+          LoxError::parse_error(&v.name, "A class can't inherit from itself.");
+        }
+      }
+
+      self.resolve_expr(s)?;
+
+      self.begin_scope();
+      if let Some(s) = self.scopes.borrow().last() {
+        s.borrow_mut().insert("super".to_string(), true);
+      }
+    }
+
     self.begin_scope();
     if let Some(s) = self.scopes.borrow().last() {
       s.borrow_mut().insert("this".to_string(), true);
@@ -218,6 +252,11 @@ impl<'a> StmtVisitor<()> for Resolver<'a> {
     }
 
     self.end_scope();
+
+    if stmt.superclass.is_some() {
+      self.end_scope()
+    }
+
     self.current_class_type.replace(enclosing_class);
     Ok(())
   }
@@ -288,7 +327,22 @@ impl<'a> StmtVisitor<()> for Resolver<'a> {
 }
 
 enum ClassType {
+  Subclass,
   Class,
+}
+
+trait CheckClassType {
+  fn is_subclass(&self) -> bool;
+}
+
+impl CheckClassType for Option<ClassType> {
+  fn is_subclass(&self) -> bool {
+    if let Some(ClassType::Subclass) = self {
+      return true;
+    }
+
+    false
+  }
 }
 
 enum FunctionType {
@@ -297,11 +351,11 @@ enum FunctionType {
   Method,
 }
 
-trait CheckType {
+trait CheckFunctionType {
   fn is_initialiser(&self) -> bool;
 }
 
-impl CheckType for Option<FunctionType> {
+impl CheckFunctionType for Option<FunctionType> {
   fn is_initialiser(&self) -> bool {
     if let Some(FunctionType::Initialiser) = self {
       return true;
