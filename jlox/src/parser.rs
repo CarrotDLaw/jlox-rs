@@ -196,7 +196,7 @@ impl<'a> Parser<'a> {
     if let Some(i) = increment {
       body = Stmt::Block(
         BlockStmt {
-          statements: vec![
+          statements: [
             body.into(),
             Stmt::Expression(
               ExpressionStmt {
@@ -206,6 +206,7 @@ impl<'a> Parser<'a> {
             )
             .into(),
           ]
+          .to_vec()
           .into(),
         }
         .into(),
@@ -234,7 +235,7 @@ impl<'a> Parser<'a> {
     if let Some(i) = initialiser {
       body = Stmt::Block(
         BlockStmt {
-          statements: vec![i.into(), body.into()].into(),
+          statements: [i.into(), body.into()].to_vec().into(),
         }
         .into(),
       );
